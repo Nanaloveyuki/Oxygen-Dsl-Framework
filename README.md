@@ -1,0 +1,137 @@
+# Oxygendsl
+
+在 RimWorld 1.6 中用 Oxygen 声明原生特质、思想和常用内容修改，并在运行中的存档里重载玩法条件。支持动态心情、限时记忆、类型、struct、模块、Mod 自动内容入口和 RHAH 三态行为闸门；现已加入 IrisMenus 设置页与顶层 optional use。
+
+- 包名：`nanaloveyuki.oxygendsl`
+- 命名空间：`Oxygendsl`
+- 无 RimTalk 依赖；依赖 Harmony，框架只安装一个原生内容加载接点，脚本不直接操作补丁。
+
+## 使用
+
+1. 安装并启用 Oxygendsl，启动游戏并进入存档。首次加载程序集仍需要启动游戏。
+2. 打开「选项 → Mod 设置 → Oxygendsl → 打开脚本窗口」。
+3. 在窗口编辑并点击「应用脚本」，或填写 `Examples/mood.oxy` 的完整路径后点击「从文件读取」。
+4. 查看 Pawn 需求页与窗口中的运行检查。应用失败保留上一份有效脚本。
+5. 「停用并清理效果」只撤销本脚本拥有的效果；「恢复有效文本」只撤销尚未应用的编辑。
+
+```text
+fn comfortable(pawn) {
+    return pawn.food != null && pawn.food > 0.25
+}
+
+mood("fed_comfort",
+    label: "吃饱了",
+    description: "我吃饱了。现在感觉不错。",
+    offset: 5,
+    target: "colonists",
+    when: comfortable)
+```
+
+修改标签、描述、点数或条件后再次应用，立即生效；暂停时也能评估。框架使用真实思想影响原版目标心情，不直接改写当前心情条。
+
+- `colonists`：当前地图殖民者。
+- `map`：当前地图合格 Pawn，无心情需求的对象显示跳过原因。
+- `selected`：首次应用时固定选择；之后只由「重新捕获选择」改变。
+- 限时记忆与完整契约：[docs/mvp.md](docs/mvp.md)。
+- 类型、`struct`、组合与模块语法：[docs/syntax-draft.md](docs/syntax-draft.md)。
+- 完整类型化示例：[Examples/typed-mood.oxy](Examples/typed-mood.oxy)，辅助库在 [Oxygen/helpers.oxy](Oxygen/helpers.oxy)。
+- 真实游戏与性能记录：[docs/validation.md](docs/validation.md)。
+- 后续能力、当前阶段限制与适度验证安排：[docs/requirements.md](docs/requirements.md)。
+
+脚本和归属状态随存档保存。移除框架前先停用脚本并另存；本次没有验证直接卸载带活动效果的存档。脚本只能使用允许的宿主接口，不能任意读写文件、反射、创建线程或操作 Harmony；主脚本文件读取是窗口中的显式操作，模块读取限定于对应活动 Mod 的 `Oxygen/`。
+
+语言支持无标注动态绑定和可选的后置约束：`fn add(a: int, b: int): int { return a + b }`；提供 `any`、`int`、`float`、`bool`、`string`、`list<T>`、固定长度 `array<T>`、`object` 和 `T?`。`struct` 使用引用语义，支持普通字段组合及 `embed` 成员转发。
+
+Mod 库放在对应活动 Mod 根目录的 `Oxygen/`：`use helpers@author.modid` 读取 `Oxygen/helpers.oxy`，模块用 `pub fn`、`pub struct`、`pub const` 导出。基础标准能力免导入；`use math@std`、`use logic@std`、`use cs@std` 提供数值夹取、布尔集合逻辑和受控整数包装，不开放任意 C# 执行。
+
+应用和读档会重新读取模块；模块状态不跨应用或读档持久化。移除或修改依赖文件会影响下次加载，错误应用仍保留上一份有效脚本与效果。
+
+### IrisMenus 设置页
+
+可选安装 IrisMenus 后，消费 Mod 可用 `optional use irismenus@std` 与 `irismenus.registry(pages: [...])` 声明自适应的 SubItem 页。支持开关、数值、滑条、文本、下拉选项、按钮和动态显示条件；未安装时保留消费 Mod 的原版设置入口，不追加硬依赖。
+
+C# 消费端用 `OxygenSettingsHost.Register(owner, values)` 挂载自己的 `Oxygen/settings.oxy`，设置值及全局／存档保存仍由该 Mod 持有。其他 Mod 可通过通用 `IOxygenModuleProvider`／`OxygenHostModuleRegistry` 接入，不必逐个加入 std。完整声明与 API 见 [语法文档](docs/syntax-draft.md#irismenus-设置页)。PrisonerNames 另外硬依赖 IrisMenus，提供无需改脚本的命名样式、分数／等级和单人覆盖。
+
+### 游戏内打开网页编辑器
+
+安装 IrisMenus 后，ODF 自动为所有声明依赖 ODF 的活动 Mod 注册「在浏览器编辑 Mod」和「退出编辑器」操作；纯内容 Mod 也有入口。点击编辑先二次确认，再打开随 Mod 打包的 CodeMirror／Blockly 页面，不是完整 VSCode。玩家机器不需要 Node、.NET SDK 或联网下载资源。
+
+服务只监听随机端口的 `127.0.0.1`，会话令牌留在 URL fragment；检查／文件读写／应用通过受认证的本机请求和游戏主线程执行。只能编辑活动依赖 Mod 的 `Oxygen/*.oxy`、`.oxyblocks` 及消费端主动提供的存档草稿。保存安装文件会改变该 Mod，先保留备份；原生内容仍需重启，不能把保存误认为热应用。
+
+关闭浏览器或返回主菜单不会结束服务；在 IrisMenus 明确点击「退出编辑器」或退出游戏才回收。切换存档后旧运行中文档失效，文件编辑仍可用。消费端使用 `OxygenEditorHost.RegisterDocuments(packageId, factory)` 提供 `Read`、`Write`、`Apply` 和显式事实 `Preview` 回调。事件接口 `OxygenEvents.Subscribe/Publish` 传递提供者、事件 ID、Pawn 和只读事实，不开放 Harmony 给脚本。使用与边界见 [编辑器文档](docs/ide.md#本机网页编辑器)。
+
+### VSCode 作者工具
+
+`Tools/vscode` 提供 `.oxy` 与 Markdown 围栏高亮、17 个常用片段（含 `lang`）、当前文件诊断和 Outline／符号导航；检查未保存文本，复用现有 parser/analyzer，不执行脚本。检查器不依赖游戏程序集，诊断与导航需要插件宿主安装 .NET 9+，高亮／片段无需 .NET。
+
+在 `Tools/vscode` 运行 `npm ci && npm run package:vsix`，输出 `tmp/vscode/oxygen-language-support-0.2.0.vsix`，通过 VSCode「Install from VSIX…」安装。配置、模块识别与限制见 [插件说明](Tools/vscode/README.md)。当前不是 LSP，尚不提供跨文件补全／跳转或 Def 校验。
+
+图形积木编辑器已集成到同一插件的 Blockly Webview，无需外部网站或独立服务。执行 **Oxygen: New Block Program**，从心情、原生内容、IrisMenus 设置、囚犯命名或空白模板创建 `.oxyblocks`；支持画布与字段表单、撤销／重做、错误回定位和受保护的 `.oxy` 导出。保存积木不自动覆盖源码，不做任意源码双向转换。网页入口复用同一生成器；范围与数据契约见 [编辑器说明](docs/ide.md)。
+
+## 原生内容 Mod
+
+作者仍使用 RimWorld 的 `About/About.xml` 与可选 `LoadFolders.xml` 包装。玩法内容不必另写 Def/Patch XML：
+
+- `Oxygen/content.oxy`：`template`、`define`、`patch`，启动时自动加载原生内容。
+- `Oxygen/rules.oxy`：`thought_rule`、`gate_rule`，可在脚本窗口点击「重新加载 Mod 规则」。
+- 其它 `Oxygen/*.oxy`：`use` 库；导入库不自动启用玩法声明。版本/DLC加载目录按游戏的文件查找顺序选择入口与库。
+
+```oxygen
+template("rare", type: "TraitDef", fields: { commonality: 0 })
+define("TraitDef", "MyMod_Worker", extends: "rare", fields: {
+    degreeDatas: [{ degree: 0, label: "worker", description: "{PAWN_nameDef} works faster.",
+        statFactors: [{ stat: def_ref("StatDef", "WorkSpeedGlobal"), value: 1.15 }] }]
+})
+patch("TraitDef", "Industriousness", set: { commonality: 1.5 })
+```
+
+完整内容包：[Examples/NativeTraits](Examples/NativeTraits)；RHAH 策略：[Examples/RhahPolicy](Examples/RhahPolicy)。分别将示例目录复制为独立 Mod 并启用；不会因安装框架就启用示例。特质授予仍由原生游戏／生成方处理，框架不在读档时强制补回特质。
+
+本批内置 `TraitDef`／`ThoughtDef` 字段映射、带类型的 Def 引用、原生 Worker 类型校验、模板／组合和 `set`／`append`／`remove`。Def 继承按 `defName` 展开，与 XML `Name`／`ParentName` 分开；嵌套修改可用 `"degreeDatas.0.label"`。完整声明及 C# 扩展接口见 [语法文档](docs/syntax-draft.md#原生内容与运行规则)。
+
+内容在传统 XML Patch 完成后、原生继承和引用解析前提交；多个 Oxygen 提供者按活动 Mod 顺序处理。后执行的修改可覆盖前项，运行检查显示本框架的修改顺序与前后值，不追踪外部 C# 的全部后续修改。
+
+**新增定义和内容字段修改当前要求重启；规则条件可热重载。** 重载失败保留该 Mod 的上一有效规则；内容或其依赖被修改时保留文件编辑并报告待重启，不半份热应用。提供者停用状态随存档保存；检测到特质等级／思想阶段布局不兼容时停用规则，不迁移已有 Pawn。停用规则不删除原生 Def、已授予特质或已获取的记忆，不能据此直接卸载内容包。
+
+RHAH 适配只在对应 Mod 活动时加载，使用稳定 `HungerAndHavoc.Api.dll`；`true` 允许、`false` 拒绝、`null` 不参与。保留角色覆盖 → 行为策略 → 原默认规则的顺序，不把条件结果写成永久 `SetGate`。本批未加入新的 Job／动作 DSL。
+
+### 翻译与 DefInjected
+
+运行时文本使用免导入的 `lang("Key", name: value)`；设置标题／标签在回调内查询，可随当前语言变化。复用原生 Keyed、默认语言回退和命名参数格式化，缺键显示键名；离线调用没有翻译宿主则报错。PrisonerNames 已改用通用 `lang()`，不再导出专用翻译成员。完整契约见 [语法文档](docs/syntax-draft.md#翻译查询-lang)。
+
+原生 Def 文本继续放在 `Languages/<语言>/DefInjected/<真实Def类型>/`，不要按用途或原始 XML 文件夹猜类型。例如 `MapGeneratorDef` 与 `GenStepDef` 分别使用自己的类型目录；当前游戏程序集没有 `SiteDef`，`SiteDefs` 也无法解析。自定义类型应写完整命名空间，如 `RHAH.SomeDef`。RimWorld 1.6 还兼容目录名去掉末尾一个字符后解析；不依赖这条兼容规则创建新目录。
+
+`check`／`preview` 检查翻译目录类型和键所属 Def，已知错配报错，缺少外部目录／程序集时标为 Unknown；不验证全部字段路径、翻译完整性或实际注入。最终在主菜单选择非英语、启用开发者模式，运行 **Translation → Save Translation Report**（`Actions/Save Translation Report`），查看报告的 General load errors 与 Def-injected translations load errors。报告写入桌面 `TranslationReport.txt`，桌面不可用时写入游戏保存数据目录；错误目录不保证立即出现在玩家日志里。
+
+
+## 离线检查与试算
+
+构建生成 `tmp/tool/Oxygendsl.Tool.exe`。Windows 放在可解析框架、游戏程序集的位置运行；Linux Mono 不要把游戏自带的 `mscorlib.dll` 加入搜索路径，应仅提供需要的游戏／Unity DLL 和 `tmp/build`。
+
+```sh
+Oxygendsl.Tool.exe check Examples/NativeTraits --catalog /path/to/Core/Defs
+Oxygendsl.Tool.exe preview Examples/RhahPolicy --facts Examples/RhahPolicy/preview.json
+```
+
+`--catalog` 可重复；`--mod` 添加导入库的 Mod 根目录。只有确认目录封闭完整时使用 `--catalog-complete`；默认标为不完整并记录目录／依赖 SHA-256。退出码：`0` 检查成功，`1` 错误，`2` 目录不完整或引用未知。`preview` 只读取显式 JSON 事实并运行规则函数，不执行寻路、Job、伤害或特质授予，也不替代原生思想资格检查。
+
+## 构建与验证
+
+```sh
+# 只构建；可在游戏运行时使用，不覆盖已加载程序集
+bash scripts/deploy.sh --build-only
+
+# 退出游戏后构建并部署至 RimWorld/Mods/Oxygendsl
+bash scripts/deploy.sh
+
+# 独立语言行为检查
+dotnet run --project Tests/Oxygendsl.Checks.csproj -c Release
+```
+
+默认游戏路径由 `Directory.Build.props` 与部署脚本定义，可通过 `RIMWORLD_DIR` 指定部署路径。Linux/WSL 构建引用本机游戏程序集，不分发这些程序集。
+
+构建 IrisMenus 适配程序集会引用相邻 `../IrisMenus/Source/IrisMenus.csproj`，可用 MSBuild 属性 `IrisMenusSourceDir` 改路径。发布只携带 `IrisMenus/Assemblies/Oxygendsl.IrisMenus.dll`，由 `LoadFolders.xml` 在 IrisMenus 启用时加载；不分发 IrisMenus.dll。
+
+本机 RimCarbon14 客户端、可复用 Python 验收脚本、临时原生探针和原始结果保留在 `tmp/`，该目录被忽略且不进入发布包。
+
+语言核心复用 AdvancedRimTalk 的 Arti 实现；来源与 MIT 授权见 [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md)。本仓库许可见 [LICENSE](LICENSE)。

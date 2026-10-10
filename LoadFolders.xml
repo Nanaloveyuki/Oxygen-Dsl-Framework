@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<loadFolders>
+  <v1.6>
+    <li>/</li>
+    <li>1.6</li>
+    <li IfModActive="nanaloveyuki.ratkin.hungerandhavoc">Rhah</li>
+    <li IfModActive="Nanaloveyuki.IrisMenus">IrisMenus</li>
+  </v1.6>
+</loadFolders>
