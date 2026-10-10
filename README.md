@@ -5,6 +5,7 @@
 - 包名：`nanaloveyuki.oxygendsl`
 - 命名空间：`Oxygendsl`
 - 无 RimTalk 依赖；依赖 Harmony，框架只安装一个原生内容加载接点，脚本不直接操作补丁。
+- 发布图片：`About/Preview.png`（1536×1024）与 `About/ModIcon.png`（1254×1254），白底黑字的 O₂ / DSL Framework 标识。
 
 ## 使用
 
