@@ -1,5 +1,40 @@
 # Oxygendsl 验证记录
 
+## 框架设置与 Oxygen 语言文档接入 IrisMenus（2026-10-11）
+
+- 检测 IrisMenus 后自动注册框架 `general` 与 `documentation` 两个 SubItem，不要求玩家手动添加。设置复用原生绘制入口；未安装 IrisMenus 时保留原版 Mod 设置。六篇中文手册覆盖入门、关键词与语法、值与函数、游戏规则与内容、模块／翻译／设置、进阶类型与注意事项，嵌入可选适配 DLL；界面标签提供中英翻译，正文当前仅中文。
+- 最终 `dotnet build Oxygendsl.slnx -c Release --nologo` 零警告、零错误，框架 508 项行为检查通过。手册 37 个独立示例通过实际 Editor parser/analyzer；37 个实际 Core 执行／ScriptCompiler／ContentCompiler／OxygenSettingsCompiler 场景通过。没有新增文案或源码匹配型永久测试。
+- 独立 RimWorld 1.6.4871／Unity Mono，配置 `C:/RimCarbon14/odf-framework-docs-20261011`，实例 `a563a32bf0804277838eb7c923a6544d`，1280×720：实际 IM 导航只有唯一框架父级和上述两页；设置在主菜单显示读档提示，文档主题／章节导航与正文滚动正常。Mod 搜索 `impl`、`lang：查询当前语言`、`静态 Self 工厂` 得到文档结果，点击翻译与泛型章节结果后滚动到对应章节。搜索提供器同时供全局／Mod 索引使用，本轮 UI 只实际操作 Mod 搜索，不将其记为全局搜索点击验收。
+- 实际切换简体中文后界面标签更新；泛型 `fn make<T: Factory>`、`make<Label>` 和 `Self` 原样显示，不被 Markdown 富文本吞掉。只读原文开关生效，复制全文得到与源文件一致的 8590 字符，Windows 剪贴板仅省略末尾换行。截图 `a08fefa44f1243a8a4267f6e4ae8064a.png` 为总览，`6ac6102a9dcc4e928c998b63e0f4cf28.png` 为中文控件与泛型静态工厂。缩窄窗口的外部 Rect 写入被桥接拒绝，未获得窄窗口视觉证明；不改 IM 背景或透明度。
+- 最终程序集另用无 IrisMenus 配置 `C:/RimCarbon14/odf-framework-native-20261011`、实例 `e1ba331029f34d31a078758cac584de9` 验证：活动 Mod 不含 IM，实际原版 Options → Mod options → Oxygendsl 正常打开原生设置与读档提示，截图 `3e2e2fee1ff3468ea4154c06182e7476.png`。两个隔离游戏均正常退出，未修改玩家安装或配置；回执与结果在忽略目录 `tmp/framework-docs-20261011/`。临时示例执行工程验证后移除。
+
+## 玩家设置文案与 Markdown 使用指南（2026-10-11）
+
+- PrisonerNames 的设置和名单说明改为玩家用语：用生日解释年龄段，用加减分解释积分，用「升级所需分数」替代数学下限，用「默认等级」替代 −∞，不改底层取值与行为。设置页只留简短提示和名称示例，不再展示整段占位符列表、函数签名或开发者状态接口。
+- 在已有三个设置页后注册一个 `guide` 页，长期持有 `Markdown.Dynamic(() => "OPN_UserGuide".Translate().ToString())`，通过 `MenuControls.Markdown` 测量、绘制和 Listing 滚动。中英正文存于同一 Keyed 资源体系，每种语言只有一份完整指南；内容覆盖入门、保存、名称示例、年龄／种族、积分等级、单独设置、可跳过的高级自定义与排错。没有新文件读取、平行持久状态或 IrisMenus 改动。
+- 消费端 Release 构建零警告、零错误，47 项行为检查通过；13 文件发布包逐项 SHA-256 验证，未新增文本断言型永久测试。
+- 隔离 RimWorld 1.6.4871 进程 `04970fd3bcdf43afacd14ee4718c001e` 验证中文主菜单指南、标题／强调转换和滚动到底；进入已有存档后检查命名短说明、抵抗降低的加分标签、升级要求及默认等级。截图：`965194a153c243edbda7f58ec4a76a38.png`（指南开头）、`58837c06bc26497d86cf2f6905058c2d.png`（末尾）、`70b173a0e5b34c3aa5264cad1731c296.png`（命名）。初次实际渲染发现中文标点紧邻 ** 时未解析强调，按 IrisMenus 现有 Markdown 约定加空格，后续实际回执不含裸 **。
+- 英文进程 `83992d69a2ba45908674e50493f0e224` 验证主菜单 User guide 与存档 Naming，截图 `7184a704af2945baaafb67868dc9c8f1.png`、`3560066cee514d0692c3efffbb95231e.png`。两种语言在 1280×720 无水平溢出，Markdown 文档长内容可滚动；本轮不对 IrisMenus 主菜单背景作额外改动。回执与结果在 `tmp/editor-settings-20261011/player-guide-*`。
+- 本轮隔离游戏均正常退出，未修改玩家安装或配置，未启动 subagent。
+
+## PrisonerNames 重复导航修正（2026-10-11）
+
+- 用户截图中的第二个「囚犯代号」是消费端 `Oxygen/settings.oxy` 注册的 general 页，不是 IrisMenus 多生成了父级。原始 UI 回执也记录该子页与命名／积分／等级同时存在。移除旧 DSL 入口、专用设置值／模块桥接；只用现有 C# 三页，开关继续写当前 `GameComponent.Enabled`，名单按钮继续调用 `PrisonerNamesApi.OpenWindow`，不新增状态。
+- 消费端 Release 构建零警告、零错误，47 项行为检查通过；未新增只检查页面注册的永久测试。发布包清除旧 `settings.oxy`，共 13 个文件逐项 SHA-256 验证。
+- 独立 RimWorld 1.6.4871 进程 `fd4b8183184e47d1b0ea4a7334cb9d91` 读取已有存档，实际导航为「全局选项／ODF 囚犯代号／命名／积分／等级」，没有重复子页。点击移入命名页的代号开关，实际 runtime 依次变为 false／true；名单按钮打开真实 `NamingWindow`，积分页显示初始分数与事件系数，等级页显示阈值与等级编辑。
+- 实际中文界面截图 `b3ca83ac1e7b4a39b20fab9443c5af5d.png` 显示唯一父级、三个子页及合并后的开关／名单按钮。截图和回执位于隔离配置与 `tmp/editor-settings-20261011/navigation-fix-*`。语义 UI 自动操作遇到 stale-layout 拒绝后重新取布局完成；一次 smoke 断言误写了初始分数标签，读取真实界面标签后纠正，没有修改生产文案迎合断言。隔离游戏正常退出；未修改玩家安装或 IrisMenus 代码，本轮没有启动子任务，四个先前失败子任务已退出。
+
+## 囚犯设置分页与年龄命名（2026-10-11）
+
+- 框架与消费端 Release 构建 0 警告、0 错误；消费端 47 项行为检查通过，覆盖英文占位符与多语言正文、旧中文键拒绝、小数年龄及边界、种族同段覆盖／缺段继承、禁用覆盖、深拷贝隔离和非法配置拒绝。本轮未重跑框架历史全套检查。
+- 编辑器拒绝 PrisonerNames 的根因是 `About.xml` 中 ODF／IrisMenus 非官方依赖没有安装 URL，被 RimWorld 元数据校验剔除。补齐 `downloadUrl` 后，真实 IrisMenus「在浏览器编辑 Mod」确认打开生产 HTTP 服务；活动包筛选没有放宽。实际 Chromium 读取安装文档及 `current/naming`／`current/events`，最终预览使用已存年龄／种族配置，事实 `ODF_SmokeEnglish / age=1.5 / number=7` 得到 `RaceKid007`。Windows 游戏与 WSL Chromium 之间仅加临时 TCP 转发，保留原 Host／Origin／token 校验；没有替身文档后端。
+- Windows Unity Mono／RimWorld 1.6.4871，独立安装 `C:/RimCarbon14/oxygendsl-native-game-20261009`、配置 `C:/RimCarbon14/odf-editor-settings-20261011`。实际设置页观察命名／积分／等级分别导航，年龄草稿改为 `Kid{number_text}` 后跨页改初始分数 42，从积分页保存同时保留年龄改动；添加 21 岁边界生成六段，并单独覆盖一个种族的 1–7 岁段。
+- 活动 Pawn 种族目录返回 160 个定义，不包括继承了 race 数据的尸体 ThingDef。中文有翻译的 fixture 显示「本地化种族」，缺译 fixture 显示 `english fallback race`。中文所属 Mod 显示「ODF 囚犯代号」，另启英文进程实际显示 `ODF Prisoner Names`，其 Naming／Scores／Grades 分页正常。不是只检查字典注册。
+- 实际囚犯生理年龄 0.999／1／6.999／7／17.999／18 得到 `幼001`／`Kid001`／`Kid001`／`少001`／`青001`／`P001`，原 `Pawn.Name` 对象未变。未知占位符配置拒绝并保留旧结果；应用自定义命名后保存设置不改有效源码或未应用草稿。旧 CRLF 配置解析保持单一样式。
+- 实际保存 `odf-age-settings-pawn-final` 并用新进程读回，保留初始分数 42、六段下限与名称、种族覆盖、编号和实际 `P001`。第一次真实读档暴露 Windows Scribe 将文本换行为 CRLF，原解析器未去 `\r`，导致年龄 section 未识别且基础样式含控制字符；修正行分隔后最终进程 `3bde3586930542ca929b3ec05490559c` 读回成功、LastError 为空。此失败未记为通过。
+- 视觉验收同时修正等级下限缺译。最终中文等级截图 `54843170e3db42e098543e81177c6652.png`、英文所属名称截图 `fa301256d1b94794bb931da35b0ccc60.png`；回执与结果位于忽略目录 `tmp/editor-settings-20261011/`。浏览器初次跨 WSL 连接失败后，用本地转发完成真实预览；没有将失败连接计为 UI 通过。所有本轮隔离游戏与编辑器服务正常退出。
+- 不改玩家安装或配置；没有新增原生事件补丁、跨地图／商队、全部 DLC 或大型 Mod 集合的实测结论。
+
 ## lang 与 0.0.1 发布（2026-10-10）
 
 - 框架与 PrisonerNames Release 构建均为 0 警告、0 错误；框架 508 项行为检查、消费端 20 项命名检查及 Blockly 11 项检查通过。

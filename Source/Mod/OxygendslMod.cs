@@ -16,13 +16,18 @@ namespace Oxygendsl.Mod
         {
             Listing_Standard list = new Listing_Standard();
             list.Begin(inRect);
+            DrawSettingsPage(list);
+            list.End();
+        }
+
+        public void DrawSettingsPage(Listing_Standard list)
+        {
             list.Label("Oxygendsl_SettingsIntro".Translate());
             list.Gap(12f);
             if (Current.ProgramState != ProgramState.Playing || GameComponent_Oxygendsl.Current == null)
                 list.Label("Oxygendsl_NoGame".Translate());
             else if (list.ButtonText("Oxygendsl_OpenWindow".Translate()))
                 OxygendslApi.OpenWindow();
-            list.End();
         }
     }
 

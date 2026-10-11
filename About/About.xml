@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <ModMetaData>
-  <name>Oxygendsl</name>
+  <name>Oxygen DSL Framework</name>
   <author>Nanaloveyuki</author>
   <packageId>nanaloveyuki.oxygendsl</packageId>
   <modVersion>0.0.1</modVersion>

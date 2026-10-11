@@ -442,12 +442,9 @@ Core 不引用 Verse。游戏外执行需显式注入 `IOxygenLocalization`；�
 
 ```oxygen
 optional use irismenus@std
-use prisonernames@odf.nanaloveyuki.prisonernames
 
-fn page_title(): string { return lang("OPN_Title") }
-fn intro(): string { return lang("OPN_SettingsIntro") }
-fn enabled_label(): string { return lang("OPN_EnabledToggle") }
-fn editor_label(): string { return lang("OPN_OpenWindow") }
+fn page_title(): string { return lang("MyMod_Settings") }
+fn enabled_label(): string { return lang("MyMod_Enabled") }
 
 if irismenus.available {
     irismenus.registry(pages: [{
@@ -455,11 +452,8 @@ if irismenus.available {
         title: page_title,
         scope: "game",
         items: [
-            {id: "intro", kind: "label", label: intro},
             {id: "enabled", kind: "checkbox", label: enabled_label,
-                key: "enabled", default: true},
-            {id: "editor", kind: "button", label: editor_label,
-                action: prisonernames.open_editor}
+                key: "enabled", default: true}
         ]
     }])
 }
@@ -494,7 +488,7 @@ void IOxygenSettingsValues.Set(string key, string scope, object value);
 bool IOxygenSettingsValues.GameAvailable { get; }
 ```
 
-上面的接口行是签名说明，不是可直接复制的方法实现。宿主不反射消费端字段、不自动生成另一份设置存储。IrisMenus 是可选条件程序集；未安装时脚本应通过 optional 分支跳过声明，消费 Mod 保留原版设置绘制。PrisonerNames 的开关直接使用已有 GameComponent.Enabled／SetEnabled，不新增持久状态。
+上面的接口行是签名说明，不是可直接复制的方法实现。宿主不反射消费端字段、不自动生成另一份设置存储。IrisMenus 是可选条件程序集；未安装时脚本应通过 optional 分支跳过声明，消费 Mod 保留原版设置绘制。设置值直接使用消费端已有的持久状态，不新增平行存储。
 
 ### 通用原生模块 API
 
