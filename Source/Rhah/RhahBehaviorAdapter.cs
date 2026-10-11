@@ -54,13 +54,4 @@ namespace Oxygendsl.Rhah
             }
         }
     }
-
-    [StaticConstructorOnStartup]
-    public static class RhahAdapterBootstrap
-    {
-        static RhahAdapterBootstrap()
-        {
-            RhahBehaviorAdapter.Activate();
-        }
-    }
 }

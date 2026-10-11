@@ -20,5 +20,6 @@
   </Folder>
   <Folder Name="/Tests/">
     <Project Path="Tests/Oxygendsl.Checks.csproj" />
+    <Project Path="Tests/AdapterLoading/AdapterLoading.csproj" />
   </Folder>
 </Solution>

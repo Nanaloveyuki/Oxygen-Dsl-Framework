@@ -1,5 +1,14 @@
 # Oxygendsl 验证记录
 
+## RHAH 可选适配器延后加载（2026-10-11）
+
+- RHAH v1.0.6 发布 API 与当前 API 一致，接口没有删除；故障是 ODF 先加载却通过 LoadFolders 立即扫描反向依赖适配器。移除 Rhah 提前扫描项和适配 DLL 的自动静态启动入口，框架主体在全部模组程序集和静态启动完成后，从自身安装路径加载并调用既有 Activate。不改 RHAH API、不随包复制 API、不倒置框架依赖
+- Release 构建零警告、零错误，既有 548 项行为检查通过。新增 `Tests/AdapterLoading` 独立 Mono 回归按实际发布加载目录扫描框架、随后才载入 API，并检查真实 TypeRef 和重复激活单次注册；旧安装失败于 `01000011`，修后安装通过
+- 真实 RimWorld 1.6.4871 独立副本 `C:/RimCarbon14/rhah-adapter-fixed-game-20261011`，配置 `C:/RimCarbon14/rhah-adapter-fixed-20261011`：正常 ODF→RHAH 顺序启动无此类型加载错误，适配器注册一次。双地图旧档上的真实访客经 RHAH_Api 消费脚本 deny/allow/abstain，Pawn 显式覆盖优先，重复 Activate 不重复注册；恢复原样例规则并推进 120 tick
+- 配置 `C:/RimCarbon14/odf-adapter-without-rhah-20261011` 未启用 RHAH 和其示例，新游戏与 120 tick 通过；实际 AppDomain 没有 API 或 RHAH 适配 DLL。两次测试进程正常退出
+- RHAH 修复卡 `docs/bug-cards/2026-10-11/odf-rhah-adapter-load-order.md` 与忽略目录 `tmp/odf-adapter-fix-receipts.jsonl` 在相邻 RHAH 仓库。两份配置的 Player.log 留存。共享旧隔离安装另有游戏进程运行，本轮复制独立安装，没有修改该运行进程、正式安装、玩家配置或原始存档；尚未正式部署
+- 更新须同时替换 LoadFolders、Oxygendsl.Mod 与 Oxygendsl.Rhah 后完全重启；只重编适配器或只更新 RHAH 不解决提前扫描。不泛化为全部外部适配器或玩家完整模组组合验收
+
 ## ODF 接管 RHAH EventChain（2026-10-11）
 
 - ODF 提供版本化 provider／定义、按归属分区保存的实例和动作回执、到期堆及 `events.ctx@event` 决议宿主。RHAH 切换现有 51 个短链、八种长链及 120 tick 捕食到达排程；旧扫描引擎和注册表删除，旧记录仅作迁移输入或失败保留。本批没有新增物品、心情、事件、剧情或 Harmony 补丁，Pawn／捕食 AI 与 NarrativeState 仍归 RHAH。

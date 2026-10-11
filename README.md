@@ -102,6 +102,8 @@ patch("TraitDef", "Industriousness", set: { commonality: 1.5 })
 
 完整内容包：[Examples/NativeTraits](Examples/NativeTraits)；RHAH 策略：[Examples/RhahPolicy](Examples/RhahPolicy)。分别将示例目录复制为独立 Mod 并启用；不会因安装框架就启用示例。特质授予仍由原生游戏／生成方处理，框架不在读档时强制补回特质。
 
+RHAH 保持排在 ODF 后面。`Rhah/Assemblies/Oxygendsl.Rhah.dll` 不进入 Verse 的提前程序集扫描；框架在所有模组程序集和静态启动完成后，才从自身目录加载并注册这个可选适配器。未启用 RHAH 时不加载它，不附带 `HungerAndHavoc.Api.dll`。更新这项兼容修复必须一起更新 ODF 的 `LoadFolders.xml`、`Oxygendsl.Mod.dll` 和 `Oxygendsl.Rhah.dll`，然后完全退出并重启游戏。
+
 本批内置 `TraitDef`／`ThoughtDef` 字段映射、带类型的 Def 引用、原生 Worker 类型校验、模板／组合和 `set`／`append`／`remove`。Def 继承按 `defName` 展开，与 XML `Name`／`ParentName` 分开；嵌套修改可用 `"degreeDatas.0.label"`。完整声明及 C# 扩展接口见 [语法文档](docs/syntax-draft.md#原生内容与运行规则)。
 
 内容在传统 XML Patch 完成后、原生继承和引用解析前提交；多个 Oxygen 提供者按活动 Mod 顺序处理。后执行的修改可覆盖前项，运行检查显示本框架的修改顺序与前后值，不追踪外部 C# 的全部后续修改。
@@ -142,6 +144,8 @@ bash scripts/deploy.sh
 # 独立语言行为检查
 dotnet run --project Tests/Oxygendsl.Checks.csproj -c Release
 ```
+
+RHAH 加载顺序回归先构建 `Tests/AdapterLoading/AdapterLoading.csproj`，再用 Mono 运行其 `bin/Release/net48/AdapterLoading.exe`，依次传入已打包的 ODF 目录、RHAH API DLL、游戏 Managed 目录与 Harmony DLL 路径。它按实际 `LoadFolders.xml` 扫描框架，之后才加载 API 和适配器，检查真实 TypeRef 解析与重复激活不重复注册；无需启动 Unity。
 
 默认游戏路径由 `Directory.Build.props` 与部署脚本定义，可通过 `RIMWORLD_DIR` 指定部署路径。Linux/WSL 构建引用本机游戏程序集，不分发这些程序集。
 

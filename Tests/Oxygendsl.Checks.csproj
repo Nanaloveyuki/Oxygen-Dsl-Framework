@@ -5,4 +5,5 @@
     <AssemblyName>Oxygendsl.Checks</AssemblyName>
   </PropertyGroup>
   <ItemGroup><ProjectReference Include="../Source/Core/Oxygendsl.Core.csproj" /></ItemGroup>
+  <ItemGroup><Compile Remove="AdapterLoading/**/*.cs" /></ItemGroup>
 </Project>
