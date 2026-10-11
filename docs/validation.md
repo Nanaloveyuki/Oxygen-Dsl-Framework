@@ -1,5 +1,12 @@
 # Oxygendsl 验证记录
 
+## 任意 Oxygen 文件名与活动 Mod 读取语义（2026-10-11）
+
+- 递归发现所有活动 Mod 的 `Oxygen/**/*.oxy`，版本／DLC目录同相对路径覆盖；文件名不决定设置、原生声明或运行规则用途。统一编译准备文件一次，设置与规则共用其回调状态；含原生声明的文件在 Def 解析前准备，后续不重复执行，改动仍要求重启。
+- 网页编辑器不再按 ODF Dependencies 筛选，也不按 settings／rules 文件名选择 Apply；VSCode auto 模式按语法识别库与脚本。设置持久化仍归消费端，通过已有 Register 接入，不自动创建平行存储。
+- 旧 CLI 对仅有 `Oxygen/config.oxy` 的 fixture 输出 `Content changes: none`；修正后同一 fixture 输出 `Define TraitDef/ArbitraryConfigTrait` 和 `restart required`。定向临时 Mono 场景通过递归／大小写扩展名与版本覆盖、同文件原生声明／设置标题／gate 回调、Pawn 状态变化、真实 Mod 文件宿主延后执行和原生文件改动拒绝热应用。使用真实游戏程序集，但未启动 Unity，不声称设置 UI 视觉验收。
+- Release 构建零警告、零错误；VSIX 0.2.0 重新打包成功。Mono 加载真实 Assembly-CSharp 时提示缺 Unity.Burst 属性程序集，定向执行仍通过；未把它记作 Unity 游戏验证。按本轮要求未运行历史全套 smoke/tests，未新增永久测试；临时验证代码验证后移除。
+
 ## 框架设置与 Oxygen 语言文档接入 IrisMenus（2026-10-11）
 
 - 检测 IrisMenus 后自动注册框架 `general` 与 `documentation` 两个 SubItem，不要求玩家手动添加。设置复用原生绘制入口；未安装 IrisMenus 时保留原版 Mod 设置。六篇中文手册覆盖入门、关键词与语法、值与函数、游戏规则与内容、模块／翻译／设置、进阶类型与注意事项，嵌入可选适配 DLL；界面标签提供中英翻译，正文当前仅中文。

@@ -42,12 +42,8 @@ namespace Oxygendsl.Tool
                 }
                 FileCatalog modules = new FileCatalog(mods);
                 string package = modules.Identity(root);
-                ContentCompilation content = Compile(root, "content", modules);
-                ContentCompilation rules = Compile(root, "rules", modules);
-                if (content.Plan.Thoughts.Count != 0 || content.Plan.Gates.Count != 0)
-                    throw new InvalidOperationException("Runtime bindings belong in rules.oxy, not content.oxy.");
-                if (rules.Plan.Definitions.Count != 0 || rules.Plan.Patches.Count != 0)
-                    throw new InvalidOperationException("Native definitions belong in content.oxy, not rules.oxy.");
+                ContentCompilation content = Compile(root, modules);
+                ContentCompilation rules = content;
                 XmlDocument document = new XmlDocument();
                 document.LoadXml("<Defs/>");
                 NativeContentSchema schema = NativeContentSchema.Shared;
@@ -75,7 +71,7 @@ namespace Oxygendsl.Tool
                 foreach (TranslationInjectionIssue issue in translationIssues)
                     Console.WriteLine(issue.Kind + " " + issue.Line + ":" + issue.Column + " " + issue.Target + "." + issue.Field + ": " + issue.Message);
                 foreach (string folder in catalogs) Console.WriteLine("Catalog " + folder + " SHA256 " + CatalogHash(folder));
-                foreach (ContentImport import in content.Imports.Concat(rules.Imports))
+                foreach (ContentImport import in content.Imports)
                     Console.WriteLine("Import " + import.PackageId + "/" + import.ModulePath + " SHA256 " + import.SourceHash);
                 Console.WriteLine("Content changes: " + (native.RestartRequired ? "restart required" : "none") + "; rule evaluation is read-only.");
                 Dictionary<string, int> stages = new Dictionary<string, int>(StringComparer.Ordinal);
@@ -125,12 +121,37 @@ namespace Oxygendsl.Tool
             }
         }
 
-        static ContentCompilation Compile(string root, string entry, IOxygenModuleCatalog modules)
+        static ContentCompilation Compile(string root, IOxygenModuleCatalog modules)
         {
-            string path = Path.Combine(root, "Oxygen", entry + ".oxy");
-            ContentCompilation result = ContentCompiler.Compile(File.Exists(path) ? File.ReadAllText(path) : string.Empty, modules);
-            if (!result.Success) throw new InvalidOperationException(path + ": " + string.Join("; ", result.Diagnostics));
-            return result;
+            var definitions = new List<ContentDefinition>();
+            var patches = new List<ContentPatch>();
+            var thoughts = new List<ThoughtRuleDefinition>();
+            var gates = new List<GateRuleDefinition>();
+            var imports = new List<ContentImport>();
+            var ids = new HashSet<string>(StringComparer.Ordinal);
+            foreach (OxygenSourceFile file in OxygenSourceFiles.Discover(new[] { root }))
+            {
+                OxygenFileCompilation result = OxygenFileCompiler.Compile(File.ReadAllText(file.Path), false, modules);
+                if (!result.Success) throw new InvalidOperationException(file.Path + ": " + string.Join("; ", result.Diagnostics));
+                foreach (ContentDefinition definition in result.Content.Definitions)
+                {
+                    if (!ids.Add("def/" + definition.Type + "/" + definition.Id)) throw new InvalidOperationException(file.Path + ": Duplicate definition " + definition.Id);
+                    definitions.Add(definition);
+                }
+                patches.AddRange(result.Content.Patches);
+                foreach (ThoughtRuleDefinition thought in result.Content.Thoughts)
+                {
+                    if (!ids.Add("thought/" + thought.Id)) throw new InvalidOperationException(file.Path + ": Duplicate thought rule " + thought.Id);
+                    thoughts.Add(thought);
+                }
+                foreach (GateRuleDefinition gate in result.Content.Gates)
+                {
+                    if (!ids.Add("gate/" + gate.Id)) throw new InvalidOperationException(file.Path + ": Duplicate gate rule " + gate.Id);
+                    gates.Add(gate);
+                }
+                imports.AddRange(result.Imports);
+            }
+            return new ContentCompilation(new ContentPlan(definitions, patches, thoughts, gates), Array.Empty<ScriptDiagnostic>(), imports);
         }
 
         static string CatalogHash(string root)

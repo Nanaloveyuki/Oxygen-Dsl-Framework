@@ -57,13 +57,13 @@ Mod 库放在对应活动 Mod 根目录的 `Oxygen/`：`use helpers@author.modid
 
 可选安装 IrisMenus 后，消费 Mod 可用 `optional use irismenus@std` 与 `irismenus.registry(pages: [...])` 声明自适应的 SubItem 页。支持开关、数值、滑条、文本、下拉选项、按钮和动态显示条件；未安装时保留消费 Mod 的原版设置入口，不追加硬依赖。
 
-C# 消费端用 `OxygenSettingsHost.Register(owner, values)` 挂载自己的 `Oxygen/settings.oxy`，设置值及全局／存档保存仍由该 Mod 持有。其他 Mod 可通过通用 `IOxygenModuleProvider`／`OxygenHostModuleRegistry` 接入，不必逐个加入 std。完整声明与 API 见 [语法文档](docs/syntax-draft.md#irismenus-设置页)。PrisonerNames 另外硬依赖 IrisMenus，提供无需改脚本的命名样式、分数／等级和单人覆盖。
+C# 消费端用 `OxygenSettingsHost.Register(owner, values)` 接入设置存储，页面可写在自己 `Oxygen/` 下任意 `.oxy` 文件（例如 `config.oxy`），不要求 `settings.oxy`。设置值及全局／存档保存仍由该 Mod 持有。其他 Mod 可通过通用 `IOxygenModuleProvider`／`OxygenHostModuleRegistry` 接入，不必逐个加入 std。完整声明与 API 见 [语法文档](docs/syntax-draft.md#irismenus-设置页)。PrisonerNames 另外硬依赖 IrisMenus，提供无需改脚本的命名样式、分数／等级和单人覆盖。
 
 ### 游戏内打开网页编辑器
 
-安装 IrisMenus 后，ODF 自动为所有声明依赖 ODF 的活动 Mod 注册「在浏览器编辑 Mod」和「退出编辑器」操作；纯内容 Mod 也有入口。点击编辑先二次确认，再打开随 Mod 打包的 CodeMirror／Blockly 页面，不是完整 VSCode。玩家机器不需要 Node、.NET SDK 或联网下载资源。
+安装 IrisMenus 后，ODF 自动为有 `Oxygen/` 目录或已注册编辑文档的活动 Mod 注册「在浏览器编辑 Mod」和「退出编辑器」操作，不要求声明 ODF 依赖。点击编辑先二次确认，再打开随 Mod 打包的 CodeMirror／Blockly 页面，不是完整 VSCode。玩家机器不需要 Node、.NET SDK 或联网下载资源。
 
-服务只监听随机端口的 `127.0.0.1`，会话令牌留在 URL fragment；检查／文件读写／应用通过受认证的本机请求和游戏主线程执行。只能编辑活动依赖 Mod 的 `Oxygen/*.oxy`、`.oxyblocks` 及消费端主动提供的存档草稿。保存安装文件会改变该 Mod，先保留备份；原生内容仍需重启，不能把保存误认为热应用。
+服务只监听随机端口的 `127.0.0.1`，会话令牌留在 URL fragment；检查／文件读写／应用通过受认证的本机请求和游戏主线程执行。只能编辑活动 Mod 的 `Oxygen/` 下 `.oxy`、`.oxyblocks` 及消费端主动提供的存档草稿。保存安装文件会改变该 Mod，先保留备份；原生内容仍需重启，不能把保存误认为热应用。
 
 关闭浏览器或返回主菜单不会结束服务；在 IrisMenus 明确点击「退出编辑器」或退出游戏才回收。切换存档后旧运行中文档失效，文件编辑仍可用。消费端使用 `OxygenEditorHost.RegisterDocuments(packageId, factory)` 提供 `Read`、`Write`、`Apply` 和显式事实 `Preview` 回调。事件接口 `OxygenEvents.Subscribe/Publish` 传递提供者、事件 ID、Pawn 和只读事实，不开放 Harmony 给脚本。使用与边界见 [编辑器文档](docs/ide.md#本机网页编辑器)。
 
@@ -79,9 +79,9 @@ C# 消费端用 `OxygenSettingsHost.Register(owner, values)` 挂载自己的 `Ox
 
 作者仍使用 RimWorld 的 `About/About.xml` 与可选 `LoadFolders.xml` 包装。玩法内容不必另写 Def/Patch XML：
 
-- `Oxygen/content.oxy`：`template`、`define`、`patch`，启动时自动加载原生内容。
-- `Oxygen/rules.oxy`：`thought_rule`、`gate_rule`，可在脚本窗口点击「重新加载 Mod 规则」。
-- 其它 `Oxygen/*.oxy`：`use` 库；导入库不自动启用玩法声明。版本/DLC加载目录按游戏的文件查找顺序选择入口与库。
+- 自动递归读取所有已启用 Mod 的活动加载目录 `Oxygen/**/*.oxy`，文件名不决定用途；`content.oxy`、`rules.oxy`、`settings.oxy` 只是组织示例，`config.oxy` 同样有效。
+- `template`、`define`、`patch` 在原生 Def 解析前注册；`thought_rule`、`gate_rule` 与 IrisMenus 页面在 Def 加载完成后生效。一个文件可同时声明这些内容；设置仍须消费端注册存储。
+- 同一相对路径按版本／DLC加载目录优先级覆盖，不同路径按稳定路径顺序执行，提供者按活动 Mod 顺序处理。纯函数／类型库仍可通过 `use` 导入，导入不注册玩法。
 
 ```oxygen
 template("rare", type: "TraitDef", fields: { commonality: 0 })

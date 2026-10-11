@@ -17,7 +17,7 @@ namespace Oxygendsl.Mod.Editor
             Append(diagnostics, parsed.Diagnostics, diagnosticLanguage, source.Length);
             if (!parsed.HasErrors && parsed.Program != null)
             {
-                ArtiAnalysisResult analyzed = new ArtiAnalyzer().Analyze(parsed.Program, isModule);
+                ArtiAnalysisResult analyzed = new ArtiAnalyzer().Analyze(parsed.Program, isModule || OxygenFileCompiler.IsLibrary(parsed.Program));
                 Append(diagnostics, analyzed.Diagnostics, diagnosticLanguage, source.Length);
             }
             return diagnostics;

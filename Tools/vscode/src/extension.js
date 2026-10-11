@@ -52,7 +52,7 @@ class Analyzer {
     return new Promise((resolve, reject) => {
       const timer = setTimeout(() => this.fail(child, new Error('Analyzer did not respond within 15 seconds.')), 15000);
       this.pending.set(id, { resolve, reject, timer });
-      child.stdin.write(JSON.stringify({ id, source, isModule: options.isModule, language: options.language }) + '\n');
+      child.stdin.write(JSON.stringify({ id, source, isModule: options.isModule, autoMode: options.autoMode, language: options.language }) + '\n');
     });
   }
 
@@ -75,16 +75,13 @@ class Analyzer {
 function optionsFor(document) {
   const config = vscode.workspace.getConfiguration('oxygen', document.uri);
   const mode = config.get('analysis.mode', 'auto');
-  const segments = document.uri.path.split('/');
-  const fileName = segments[segments.length - 1].toLowerCase();
-  const inOxygen = segments.slice(0, -1).some(segment => segment.toLowerCase() === 'oxygen');
-  const isModule = mode === 'module' || (mode === 'auto' && inOxygen &&
-    !['content.oxy', 'rules.oxy', 'settings.oxy'].includes(fileName));
+  const isModule = mode === 'module';
   const language = config.get('diagnostics.language', 'auto');
   return {
     enabled: config.get('diagnostics.enabled', true),
     dotnetPath: config.get('dotnetPath', 'dotnet'),
     isModule,
+    autoMode: mode === 'auto',
     language: language === 'auto' ? (vscode.env.language.startsWith('zh') ? 'zh-CN' : 'en') : language
   };
 }

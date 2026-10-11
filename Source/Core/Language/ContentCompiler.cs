@@ -47,6 +47,29 @@ namespace Oxygendsl.Language
             }
         }
 
+        internal static ContentCompilation RegisterPrepared(ArtiProgram program, ArtiExecutor executor, IOxygenModuleCatalog modules)
+        {
+            var diagnostics = new List<ScriptDiagnostic>();
+            try
+            {
+                var compiled = new CompiledContent(program, executor, executor.TakeImportFingerprints(modules));
+                return new ContentCompilation(compiled.Register(program, diagnostics, true), diagnostics, compiled.Imports);
+            }
+            catch (ContentRegistrationException exception)
+            {
+                diagnostics.Add(new ScriptDiagnostic(exception.Message, exception.Line, exception.Column));
+            }
+            catch (ScriptEvaluationException exception)
+            {
+                diagnostics.Add(new ScriptDiagnostic(exception.Message, exception.Line, exception.Column));
+            }
+            catch (Exception exception)
+            {
+                diagnostics.Add(new ScriptDiagnostic(exception.Message, 1, 1));
+            }
+            return new ContentCompilation(null, diagnostics, Array.Empty<ContentImport>());
+        }
+
         private static void AddDiagnostics(List<ScriptDiagnostic> destination, IEnumerable<ArtiDiagnostic> source)
         {
             if (source == null) return;
@@ -67,7 +90,7 @@ namespace Oxygendsl.Language
             private readonly Dictionary<string, Template> _templates =
                 new Dictionary<string, Template>(StringComparer.Ordinal);
 
-            private CompiledContent(ArtiProgram program, ArtiExecutor executor, IReadOnlyList<ContentImport> imports)
+            public CompiledContent(ArtiProgram program, ArtiExecutor executor, IReadOnlyList<ContentImport> imports)
             {
                 _executor = executor;
                 Imports = imports ?? Array.Empty<ContentImport>();
@@ -94,7 +117,7 @@ namespace Oxygendsl.Language
                 return new CompiledContent(program, executor, executor.TakeImportFingerprints(modules));
             }
 
-            public ContentPlan Register(ArtiProgram program, List<ScriptDiagnostic> diagnostics)
+            public ContentPlan Register(ArtiProgram program, List<ScriptDiagnostic> diagnostics, bool allowStatements = false)
             {
                 List<ContentDefinition> definitions = new List<ContentDefinition>();
                 List<ContentPatch> patches = new List<ContentPatch>();
@@ -121,6 +144,7 @@ namespace Oxygendsl.Language
                     ArtiNameExpression target = call == null ? null : call.Target as ArtiNameExpression;
                     if (target == null || !OxygenDeclarations.IsRegistration(target.Name))
                     {
+                        if (allowStatements) continue;
                         throw new ContentRegistrationException(
                             "Only imports, structs, traits, impls, functions, constants, variables, and registered declarations are allowed.",
                             statement.Span.Line, statement.Span.Column);

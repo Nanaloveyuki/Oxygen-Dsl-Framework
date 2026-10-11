@@ -281,7 +281,7 @@ let text: string = result.text
 
 主脚本从文件读取是窗口显式操作；库只查对应活动 Mod 的 Oxygen 目录。网页编辑器是另一受限宿主：只监听 127.0.0.1 随机端口，要求会话 token 和同源，不提供任意文件或远程执行。
 
-网页编辑资格来自 RimWorld 校验后的 Dependencies。消费包对框架的 About 依赖需有 packageId、displayName 和有效 downloadUrl／steamWorkshopUrl；缺少地址的依赖可能被游戏删除。“Only active Oxygen dependents can be edited” 应检查完整依赖和启用状态、更新后重启，不放宽权限。
+网页编辑资格来自活动 Mod 的 Oxygen 目录或注册文档，不再要求 Dependencies 声明 ODF；仍不开放任意 Mod 文件访问。非官方 About 依赖用于加载顺序与缺依赖提示，应保持 packageId、displayName 和有效 downloadUrl／steamWorkshopUrl，避免被游戏元数据校验移除。
 
 物理编辑文件限定活动加载目录内的 `.oxy`／`.oxyblocks`；创建新文件不能覆盖现有文件，拒绝路径逃逸和重定向。源码上限为 1048576 个 UTF-16 code units，JSON 请求体上限 8 MiB。版本冲突返回 409 并保留本地编辑，选择重新载入或保留，不假装保存成功。
 

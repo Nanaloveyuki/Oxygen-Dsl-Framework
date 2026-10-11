@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Text;
 using Oxygendsl.Mod.Editor;
+using Oxygendsl.Language;
 using UnityEngine;
 using Verse;
 
@@ -34,7 +35,7 @@ namespace Oxygendsl.Mod
             {
                 providers.Clear();
                 foreach (ModContentPack provider in LoadedModManager.RunningModsListForReading)
-                    if (DependsOnOxygen(provider)) providers.Add(provider);
+                    if (HasOxygenFiles(provider) || documentProviders.ContainsKey(provider.PackageIdPlayerFacing)) providers.Add(provider);
                 var gameObject = new GameObject("Oxygen local editor");
                 gameObject.hideFlags = HideFlags.HideAndDontSave;
                 UnityEngine.Object.DontDestroyOnLoad(gameObject);
@@ -53,7 +54,7 @@ namespace Oxygendsl.Mod
 
         public static void Open(string packageId, string documentId = null)
         {
-            if (FindProvider(packageId) == null) throw new ArgumentException("Only active Oxygen dependents can be edited: " + packageId, nameof(packageId));
+            if (FindProvider(packageId) == null) throw new ArgumentException("Only active Mods with Oxygen files can be edited: " + packageId, nameof(packageId));
             if (!Running)
             {
                 if (!File.Exists(Path.Combine(assetRoot, "index.html")))
@@ -80,13 +81,10 @@ namespace Oxygendsl.Mod
             if (!LongEventHandler.ShouldWaitForEvent) server?.Pump();
         }
 
-        static bool DependsOnOxygen(ModContentPack provider)
+        static bool HasOxygenFiles(ModContentPack provider)
         {
-            if (string.Equals(provider.PackageIdPlayerFacing, PackageId, StringComparison.OrdinalIgnoreCase)) return false;
-            ModMetaData metadata = provider.ModMetaData;
-            if (metadata == null) return false;
-            foreach (ModDependency dependency in metadata.Dependencies)
-                if (string.Equals(dependency.packageId, PackageId, StringComparison.OrdinalIgnoreCase)) return true;
+            foreach (string folder in provider.foldersToLoadDescendingOrder)
+                if (Directory.Exists(Path.Combine(folder, "Oxygen"))) return true;
             return false;
         }
 
@@ -156,7 +154,6 @@ namespace Oxygendsl.Mod
             string packageId = provider.PackageIdPlayerFacing;
             string root = provider.RootDir;
             bool blocks = full.EndsWith(".oxyblocks", StringComparison.OrdinalIgnoreCase);
-            string entry = relative.Replace('\\', '/');
             return new OxygenEditorDocument
             {
                 Id = packageId + ":file:" + full,
@@ -165,35 +162,24 @@ namespace Oxygendsl.Mod
                 Path = "Oxygen/" + relative,
                 Kind = blocks ? "blocks" : "text",
                 Writable = (File.GetAttributes(full) & FileAttributes.ReadOnly) == 0,
-                IsModule = !blocks && entry != "content.oxy" && entry != "rules.oxy" && entry != "settings.oxy" && entry != "events.oxy" && !entry.StartsWith("default-", StringComparison.Ordinal),
+                IsModule = false,
                 Read = () => ReadFile(root, full),
                 Write = source => WriteFile(root, full, source),
-                Apply = entry == "settings.oxy" ? (Func<OxygenEditorActionResult>)(() => ApplySettings(provider))
-                    : entry == "rules.oxy" ? () => ApplyRules(packageId) : null
+                Apply = blocks ? null : (Func<OxygenEditorActionResult>)(() => ApplyRules(packageId))
             };
         }
 
-        static OxygenEditorActionResult ApplySettings(ModContentPack provider)
-        {
-            foreach (Verse.Mod owner in LoadedModManager.ModHandles)
-                if (ReferenceEquals(owner.Content, provider))
-                {
-                    bool success = OxygenSettingsHost.Reload(owner);
-                    return new OxygenEditorActionResult { Success = success, Message = success ? "Settings pages applied." : "Settings pages were not replaced. Check the game log; previous pages remain active." };
-                }
-            return new OxygenEditorActionResult { Success = false, Message = "This Mod has no registered settings host. The file is saved, but was not applied." };
-        }
 
         static OxygenEditorActionResult ApplyRules(string packageId)
         {
             bool success = OxygenContentHost.ReloadRulesFor(packageId, null);
-            return new OxygenEditorActionResult { Success = success, Message = success ? "Runtime rules applied. Native content changes still require a restart."
-                : "Rules were not replaced. Check content inspection; content changes require a restart and previous rules remain active." };
+            return new OxygenEditorActionResult { Success = success, Message = success ? "Oxygen runtime rules and settings applied. Native content changes still require a restart."
+                : "Oxygen files were not applied. Check content inspection; native content changes require a restart." };
         }
 
         static OxygenEditorDocument CreateDocument(string packageId, string relative, string source)
         {
-            ModContentPack provider = FindProvider(packageId) ?? throw new ArgumentException("The selected Mod is not an active Oxygen dependent.");
+            ModContentPack provider = FindProvider(packageId) ?? throw new ArgumentException("The selected Mod is not active or has no Oxygen files.");
             if (string.IsNullOrWhiteSpace(relative) || relative.IndexOf('\\') >= 0 || relative.IndexOf(':') >= 0
                 || !relative.StartsWith("Oxygen/", StringComparison.Ordinal) || !AllowedExtension(relative))
                 throw new ArgumentException("New files must be .oxy or .oxyblocks files under Oxygen/.");

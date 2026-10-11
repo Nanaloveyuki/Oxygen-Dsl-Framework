@@ -24,7 +24,8 @@ namespace Oxygendsl.Mod
             if (settingsBridge == null) throw new ArgumentNullException(nameof(settingsBridge));
             if (bridge != null) throw new InvalidOperationException("A settings bridge is already installed.");
             bridge = settingsBridge;
-            foreach (Verse.Mod owner in initialized) Reload(owner);
+            foreach (Verse.Mod owner in initialized)
+                if (OxygenModFiles.Ready) Apply(owner.Content, OxygenModFiles.Compile(owner.Content, false).Settings);
         }
 
         public static void Register(Verse.Mod owner, IOxygenSettingsValues values)
@@ -35,38 +36,38 @@ namespace Oxygendsl.Mod
             owners.Add(owner, values);
             LongEventHandler.ExecuteWhenFinished(() =>
             {
-                Reload(owner);
                 initialized.Add(owner);
+                if (OxygenModFiles.Ready) Apply(owner.Content, OxygenModFiles.Compile(owner.Content, false).Settings);
             });
         }
 
         public static bool Reload(Verse.Mod owner)
         {
             if (owner == null) throw new ArgumentNullException(nameof(owner));
-            if (!owners.TryGetValue(owner, out IOxygenSettingsValues values))
-                throw new ArgumentException("Settings owner is not registered.", nameof(owner));
+            if (!owners.ContainsKey(owner)) throw new ArgumentException("Settings owner is not registered.", nameof(owner));
             try
             {
-                string packageId = owner.Content.PackageIdPlayerFacing;
-                if (!OxygenModModuleCatalog.Instance.TryGetSource(packageId, "settings", out string source))
-                    throw new InvalidOperationException("Missing Oxygen/settings.oxy.");
-                OxygenSettingsCompilation compilation = OxygenSettingsCompiler.Compile(source, bridge != null,
-                    OxygenModModuleCatalog.Instance, Modules, Modules, OxygenLocalization.Instance);
-                if (!compilation.Success)
-                {
-                    var messages = new List<string>();
-                    foreach (ScriptDiagnostic diagnostic in compilation.Diagnostics) messages.Add(diagnostic.ToString());
-                    throw new InvalidOperationException(string.Join("; ", messages));
-                }
-                bridge?.Replace(owner, compilation.Plan, values);
-                return true;
+                if (!OxygenModFiles.Ready) return false;
+                return OxygenContentHost.ReloadRulesFor(owner.Content.PackageIdPlayerFacing, null);
             }
             catch (Exception exception)
             {
-                Log.Error("[Oxygendsl] " + owner.Content.PackageIdPlayerFacing + "/Oxygen/settings.oxy: "
+                Log.Error("[Oxygendsl] " + owner.Content.PackageIdPlayerFacing + "/Oxygen: "
                     + exception.Message + " Previous settings pages retained.");
                 return false;
             }
+        }
+
+        internal static void Apply(ModContentPack provider, OxygenSettingsPlan plan)
+        {
+            foreach (KeyValuePair<Verse.Mod, IOxygenSettingsValues> owner in owners)
+                if (ReferenceEquals(owner.Key.Content, provider))
+                {
+                    bridge?.Replace(owner.Key, plan, owner.Value);
+                    return;
+                }
+            if (plan.Pages.Count != 0)
+                throw new InvalidOperationException(provider.PackageIdPlayerFacing + "/Oxygen: Settings declarations require OxygenSettingsHost.Register(owner, values).");
         }
     }
 }

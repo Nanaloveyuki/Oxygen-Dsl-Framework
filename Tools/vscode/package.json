@@ -120,7 +120,7 @@
             "module"
           ],
           "default": "auto",
-          "description": "Auto treats Oxygen/*.oxy as libraries except content.oxy, rules.oxy and settings.oxy; other documents are scripts. Override per folder for standalone libraries."
+          "description": "Auto distinguishes library declarations from executable scripts by syntax, never by filename. Override per folder with module or script."
         },
         "oxygen.diagnostics.language": {
           "type": "string",

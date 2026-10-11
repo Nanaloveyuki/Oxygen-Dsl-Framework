@@ -21,6 +21,12 @@ namespace Oxygendsl.Language
                 if (diagnostic.Severity == ArtiDiagnosticSeverity.Error)
                     diagnostics.Add(new ScriptDiagnostic(diagnostic.GetMessage(ArtiDiagnosticLanguage.English), diagnostic.Span.Line, diagnostic.Span.Column));
             if (result.HasErrors) return new OxygenSettingsCompilation(null, diagnostics);
+            return RegisterPrepared(declarations, executor, diagnostics);
+        }
+
+        internal static OxygenSettingsCompilation RegisterPrepared(List<object> declarations, ArtiExecutor executor,
+            List<ScriptDiagnostic> diagnostics)
+        {
             try
             {
                 var pages = new List<OxygenSettingsPage>();
@@ -180,7 +186,7 @@ namespace Oxygendsl.Language
         }
         static InvalidOperationException Error(string message) { return new InvalidOperationException(message); }
 
-        sealed class SettingsModules : IOxygenStandardModuleProvider, IOxygenHostCallable
+        internal sealed class SettingsModules : IOxygenStandardModuleProvider, IOxygenHostCallable
         {
             readonly bool available;
             readonly List<object> declarations;

@@ -80,7 +80,7 @@ namespace Oxygendsl.Editor
             string source = request.Source ?? string.Empty;
             try
             {
-                return AnalyzeSource(request.Id, source, request.IsModule, request.Language);
+                return AnalyzeSource(request.Id, source, request.IsModule, request.Language, request.AutoMode);
             }
             catch (Exception exception)
             {
@@ -88,7 +88,7 @@ namespace Oxygendsl.Editor
             }
         }
 
-        private static EditorResponse AnalyzeSource(int id, string source, bool isModule, string language)
+        private static EditorResponse AnalyzeSource(int id, string source, bool isModule, string language, bool autoMode)
         {
             int utf16Length = source.Length;
             ArtiParseResult parsed = new ArtiParser().Parse(source);
@@ -96,7 +96,7 @@ namespace Oxygendsl.Editor
             AppendDiagnostics(diagnostics, parsed.Diagnostics, language, utf16Length);
             if (!parsed.HasErrors && parsed.Program != null)
             {
-                ArtiAnalysisResult analyzed = new ArtiAnalyzer().Analyze(parsed.Program, isModule);
+                ArtiAnalysisResult analyzed = new ArtiAnalyzer().Analyze(parsed.Program, autoMode ? OxygenFileCompiler.IsLibrary(parsed.Program) : isModule);
                 AppendDiagnostics(diagnostics, analyzed.Diagnostics, language, utf16Length);
             }
 
@@ -193,6 +193,7 @@ namespace Oxygendsl.Editor
         public int Id { get; set; }
         public string Source { get; set; }
         public bool IsModule { get; set; }
+        public bool AutoMode { get; set; }
         public string Language { get; set; }
     }
 

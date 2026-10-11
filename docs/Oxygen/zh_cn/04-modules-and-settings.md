@@ -127,11 +127,11 @@ let greeting: string = welcome("Oxygen")
 
 需要跟随语言变化的页面标题和控件文本，在回调里调用 lang。顶层 `let title = lang(...)` 只在载入时取一次。输出不会自动转义或校验富文本，消费端的代号长度／控制字符等限制仍生效。
 
-Core 不引用 Verse；离线实际调用时没有翻译宿主会报带位置错误，现有 CLI 不自动读取玩家语言库。原生 content.oxy 加载期不注入翻译宿主，Def 的 label／description 用 DefInjected，不要在那一阶段执行 lang。
+Core 不引用 Verse；离线实际调用时没有翻译宿主会报带位置错误，现有 CLI 不自动读取玩家语言库。含原生声明的文件在加载期不能实际执行 lang，Def 的 label／description 用 DefInjected；延后调用的设置／规则回调可查询当前语言。
 
 ## IrisMenus 的接入前提
 
-`irismenus@std` 只在设置宿主中提供；IrisMenus 未启用时视为缺失。消费 Mod 必须先接入 `OxygenSettingsHost` 并提供现有设置存储，然后把声明放入自己的 `Oxygen/settings.oxy`。不要混入 content.oxy、rules.oxy 或动态心情主脚本。
+IrisMenus 启用时，Mod 文件宿主提供 `irismenus@std`；未启用时视为缺失。消费 Mod 必须接入 `OxygenSettingsHost` 并提供现有设置存储。页面可声明在自己的 `Oxygen/` 下任意 `.oxy` 文件，例如 `config.oxy`，也可与原生内容／运行规则共存；文件名没有特殊语义。动态心情主脚本仍是独立宿主。
 
 C# 消费端使用 `OxygenSettingsHost.Register(owner, values)` 注册，用 `OxygenSettingsHost.Reload(owner)` 明确重载。values 实现 `IOxygenSettingsValues`：Get 接收 key、scope、defaultValue，Set 接收 key、scope、value，GameAvailable 表示当前是否有可操作的存档。Mod 构造时注册，加载会延后以适应可选适配器初始化。
 

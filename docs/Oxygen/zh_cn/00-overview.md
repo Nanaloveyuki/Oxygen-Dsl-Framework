@@ -9,13 +9,13 @@ Oxygen 是 RimWorld 1.6 的玩法脚本语言。可以在存档中添加、修�
 同一种语言在不同入口中有不同的宿主能力：
 
 - **动态心情窗口**：框架管理一个随存档保存的主脚本。使用 `mood`、`memory`，进入地图后应用到本局。
-- **Mod 的 `Oxygen/content.oxy`**：启动加载时声明、继承和修改原生 `TraitDef`、`ThoughtDef`。修改后需要重启。
-- **Mod 的 `Oxygen/rules.oxy`**：Def 加载完成后绑定情境思想和 RHAH 行为闸门。规则函数支持宿主提供的热重载。
-- **Mod 的 `Oxygen/settings.oxy`**：消费 Mod 已接入设置宿主时，用可选 IrisMenus 模块声明设置页。仅放入文件不会自动获得设置存储。
-- **Mod 的其他 `Oxygen/*.oxy` 文件**：作为库模块，由 `use` 明确导入；不因存在于目录中而自动执行玩法注册。
+- **所有活动 Mod 的 `Oxygen/**/*.oxy`**：自动递归读取，文件名不决定用途。`config.oxy`、子目录文件或传统文件名都可声明原生内容、运行规则和设置页。
+- **原生声明**：`template`／`define`／`patch` 在启动时注册，修改需要重启；同文件的规则和设置延后生效。
+- **运行规则与设置**：Def 加载完成后生效；无原生声明的文件可重载。设置页仍需消费 Mod 接入设置存储。
+- **纯函数／类型库**：可通过 `use` 导入，不会因为导入而注册玩法声明。
 - **消费 Mod 自己的入口**：例如命名或事件回调。参数、返回类型和可读成员以该消费 Mod 的契约为准。
 
-不要把上述入口拼成一个文件。检查通过仅说明相应检查器覆盖的内容正确，不代表换一个宿主也能运行。
+Mod 文件可合并设置、原生内容与运行规则；含原生声明的文件整体固定到重启。动态心情窗口和消费 Mod 自己的回调仍遵守各自宿主契约。检查通过不代表换一个宿主也能运行。
 
 ## 玩家：添加第一条心情
 
@@ -74,10 +74,8 @@ let text: string = core.text.join_nonempty("\n", messages)
 
 一个消费 Mod 可以保留现有 `About/About.xml`、加载目录配置和程序集，并按需添加：
 
-- `Oxygen/content.oxy`：原生定义与修改。
-- `Oxygen/rules.oxy`：依赖这些定义的运行规则。
-- `Oxygen/settings.oxy`：已注册设置宿主的 IrisMenus 页面。
-- `Oxygen/helpers.oxy`、`Oxygen/gameplay/health.oxy`：可导入的库。
+- `Oxygen/config.oxy`：原生定义、运行规则、IrisMenus 页面均可声明，也可按需要拆成任意名称的 `.oxy` 文件。
+- `Oxygen/helpers.oxy`、`Oxygen/gameplay/health.oxy`：可导入的纯函数／类型库。
 - `Languages/ChineseSimplified/Keyed`、`Languages/English/Keyed`：`lang()` 查询的文本。
 - `Languages/.../DefInjected/TraitDef`、`ThoughtDef`：原生 Def 显示内容的翻译。
 

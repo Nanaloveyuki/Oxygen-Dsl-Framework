@@ -432,13 +432,13 @@ fn grade_text(pawn): string {
 
 函数、导入库与设置文本回调共享当前脚本的翻译宿主。需随语言变化重新取文本时，在回调内部调用 `lang()`；顶层 `let text = lang(...)` 只在载入时求值。返回文本不自动转义或校验，代号长度、控制字符和富文本限制仍由消费端执行；等级／页面／存档 ID 不使用翻译后的名称。
 
-Core 不引用 Verse。游戏外执行需显式注入 `IOxygenLocalization`；仅解析或未执行的分支不要求翻译数据，实际调用而缺少宿主时报带位置的错误。现有离线 CLI 不自动读取玩家语言库，也不把返回键名当作成功翻译。原生 `content.oxy` 的加载期不注入翻译宿主，Def 的 `label`／`description` 仍通过 `DefInjected` 翻译，避免在原生翻译加载前将语言文本写死。
+Core 不引用 Verse。游戏外执行需显式注入 `IOxygenLocalization`；仅解析或未执行的分支不要求翻译数据，实际调用而缺少宿主时报带位置的错误。现有离线 CLI 不自动读取玩家语言库，也不把返回键名当作成功翻译。含原生声明的文件在加载期拒绝实际调用 `lang`，Def 的 `label`／`description` 仍通过 `DefInjected` 翻译；该文件的设置／规则回调可在加载完成后调用 `lang`。
 
 嵌入语言时实现 `IOxygenLocalization.Translate(string key, IDictionary<string, object> arguments)`，通过 `ArtiExecutionContext(localization: provider)` 或 `ScriptCompiler.Compile`／`ContentCompiler.Compile`／`OxygenSettingsCompiler.Compile` 的 `localization:` 参数注入。命名参数字典仅在此次调用期间读取，不保留或修改；各执行器保有自己的提供者，不共享全局语言状态。游戏消费端可使用 `Oxygendsl.Mod.OxygenLocalization.Instance`，原生回退还保留开发者模式的伪翻译行为。
 
 ### IrisMenus 设置页
 
-`irismenus@std` 只在设置宿主中提供，IrisMenus 未启用时为缺失模块。声明写入消费 Mod 自己的 `Oxygen/settings.oxy`，不要混入 content.oxy、rules.oxy 或心情窗口脚本。最小示例：
+IrisMenus 启用时，Mod 文件执行宿主提供 `irismenus@std`；未启用时为缺失模块。页面声明可写入消费 Mod 自己的 `Oxygen/` 下任意 `.oxy` 文件，例如 `config.oxy`，也可与原生内容／运行规则共存；文件名不决定宿主能力。页面需要 `OxygenSettingsHost.Register(owner, values)` 接入消费端设置存储。动态心情窗口仍是独立宿主。最小示例：
 
 ```oxygen
 optional use irismenus@std
@@ -632,11 +632,11 @@ use、struct、后置类型约束及固定长度 array 已实现。字符串不�
 
 ### Mod 入口与生效方式
 
-活动 Mod 的 `Oxygen/content.oxy` 在传统 XML Patch 之后、原生 Def 解析／引用解析／缓存构建之前自动读取；`Oxygen/rules.oxy` 在 Def 加载完成后绑定。入口和库都按 `foldersToLoadDescendingOrder` 选择版本／DLC目录，多个提供者按活动 Mod 顺序应用。库只允许导出函数、struct 和常量，`use` 不启用被导入 Mod 的内容注册。
+自动递归发现所有活动 Mod 加载目录中的 `Oxygen/**/*.oxy`，不要求声明 ODF 依赖，不保留特殊入口文件名。`template`／`define`／`patch` 所在文件在传统 XML Patch 之后、原生 Def 解析／引用解析／缓存构建之前执行，原生注册先提交；同文件运行规则与设置页延后生效。其余文件在 Def 加载完成后执行。每个文件有独立作用域，可通过 `use` 导入纯函数／类型库。相同相对路径按 `foldersToLoadDescendingOrder` 覆盖，其余文件按稳定路径顺序执行，提供者按活动 Mod 顺序应用；`use` 不注册被导入文件的玩法声明。
 
 内容提交前验证候选 XML，失败不提交该提供者的半份定义。启动时没有旧内容可恢复，错误会报告并拒绝该内容入口。规则重载逐提供者替换，失败保留该提供者上一有效快照；不是全部 Mod 的跨提供者事务。重复 ThoughtDef 绑定或同一闸门绑定报错，停用的提供者不占用活动绑定。
 
-本批所有 `define`／`patch` 修改要求重启；规则函数可热重载。内容源码／导入内容变化会阻止其依赖规则被半份热更新。规则停用状态与原生等级／阶段布局签名随存档保存；不兼容布局停用规则，不自动重解释已有等级和阶段。普通脚本变量仍不持久化。
+含原生声明的文件及其导入依赖在启动时固定，任何修改、移除或新增原生声明都要求重启，包括同文件设置与规则修改；需热重载的设置／规则可放入不含原生声明的任意 `.oxy` 文件。重载统一重新读取该 Mod 的全部 Oxygen 文件，失败保留上一有效规则与设置。规则停用状态与原生等级／阶段布局签名随存档保存；不兼容布局停用规则，不自动重解释已有等级和阶段。普通脚本变量仍不持久化。
 
 ### 内容声明
 

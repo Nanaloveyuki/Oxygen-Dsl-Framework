@@ -32,7 +32,7 @@ code --install-extension /path/to/oxygen-language-support-0.2.0.vsix
 - **Oxygen: Show Analyzer Output**：查看进程错误，例如找不到运行时。
 - **Oxygen: New Block Program**：选择模板并创建 `.oxyblocks`，自动打开积木编辑器。
 
-`oxygen.analysis.mode` 默认 `auto`：路径中有 `Oxygen/` 的 `.oxy` 视为库模块，`content.oxy`、`rules.oxy` 和 `settings.oxy` 视为入口脚本；其它路径默认脚本。独立库或特殊入口可在文件夹设置中覆盖为 `module`／`script`。这样库里的 `pub` 按真实模块语义检查，不通过禁用诊断来绕过。
+`oxygen.analysis.mode` 默认 `auto`：根据语法区分纯函数／类型／绑定库和可执行脚本，不按路径或文件名识别。`config.oxy` 可以声明设置、原生内容或规则；纯库中的 `pub` 仍按模块语义检查。需要强制检查模式时可在文件夹设置中覆盖为 `module`／`script`。
 
 `oxygen.diagnostics.language` 默认跟随 VSCode 界面，也可选 `en` 或 `zh-CN`。关闭 `oxygen.diagnostics.enabled` 只关闭自动诊断，Outline 仍可请求检查器。未受信任的工作区保留高亮与片段，不启动检查进程；授予工作区信任后自动检查已打开的 Oxygen 文件。文本不会发送到网络。
 

@@ -53,13 +53,13 @@ Blockly 13.3.0 已集成在 VSCode 自定义编辑器的 Webview 内；不需要
 
 ## 本机网页编辑器
 
-ODF 的可选 IrisMenus 适配层为活动依赖 Mod 注册编辑／退出操作，IrisMenus 本身不引用 ODF。编辑按钮先确认；服务由游戏程序集提供，浏览器资源完整打包于 `WebEditor/`，不是 VSCode Server，也不需要玩家安装开发运行时。
+ODF 的可选 IrisMenus 适配层为有 Oxygen 目录或已注册文档的活动 Mod 注册编辑／退出操作，IrisMenus 本身不引用 ODF。编辑按钮先确认；服务由游戏程序集提供，浏览器资源完整打包于 `WebEditor/`，不是 VSCode Server，也不需要玩家安装开发运行时。
 
-编辑资格读取 RimWorld 校验后的 `ModMetaData.Dependencies`。消费包的 `About.xml` 中，ODF 依赖须同时提供 `packageId`、`displayName` 和有效的 `downloadUrl` 或 `steamWorkshopUrl`；缺少下载地址会被游戏删除，而不是只显示警告。ODF 的仓库地址为 `https://github.com/Nanaloveyuki/Oxygen-Dsl-Framework`。出现 “Only active Oxygen dependents can be edited” 时，检查完整依赖声明及启用状态，更新 Mod 后重启游戏；编辑器不放宽为任意 Mod 文件访问。
+编辑资格来自 Mod 启用状态及 Oxygen 目录／注册文档，不再要求 Dependencies 声明 ODF；文件权限仍限定该 Mod 的活动加载目录。About 依赖用于游戏加载顺序与缺依赖提示，非官方依赖仍应提供 packageId、displayName 和有效 downloadUrl／steamWorkshopUrl，避免被游戏元数据校验移除。
 
 1. 打开对应 Mod 的编辑入口，左栏选择物理文件或消费端提供的 `current/naming`、`current/events` 草稿。
 2. 文本采用 CodeMirror；检查把未保存的文本交给同一 C# parser/analyzer，不执行脚本或验证游戏 Def。检查成功不能证明运行时正确。
-3. 「保存」只写文件／存档草稿。「应用到本局」只对有消费端 Apply 回调的文档启用，并要求先保存；失败保留上一有效规则。存档草稿须再保存游戏才落盘；安装文件保存立即改变 Mod。原生内容没有热应用回调，修改需重启。
+3. 「保存」只写文件／存档草稿。「应用到本局」要求先保存；安装 `.oxy` 文件统一重载所属 Mod 的全部 Oxygen 文件，设置和运行规则失败保留上一有效计划，含原生声明的文件修改要求重启。消费端文档仍使用其 Apply 回调；存档草稿须再保存游戏才落盘。
 4. 创建 `.oxyblocks` 可从囚犯模板起步；编辑积木、保存 JSON、检查生成源码是独立动作。导出可选择现有文档（包括 `current/naming`）或 `Oxygen/` 内的新 `.oxy` 路径；已有目标先确认并用确认前的 SHA-256 拒绝期间发生的外部修改。导出到当前命名草稿后再打开它并应用。
 5. 显式 JSON 试算由消费端 `Preview(source, facts)` 提供。PrisonerNames 使用实际 `NamingRules` 和格式化器，仅使用输入事实及当前命名配置，不读取或修改真实 Pawn；未知事实报错，不伪造游戏行为。
 

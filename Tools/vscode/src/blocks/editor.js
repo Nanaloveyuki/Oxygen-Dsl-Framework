@@ -73,7 +73,7 @@ function registerBlockEditor(context, analyzer, output, optionsFor) {
           send({ type: 'analysis', version, diagnostics: generated.errors.map(item => ({ ...item, severity: 'error', code: 'BLOCK', start: 0, length: 0 })) });
           return;
         }
-        const options = { ...optionsFor(document), isModule: root.target.mode === 'module' };
+        const options = { ...optionsFor(document), isModule: root.target.mode === 'module', autoMode: false };
         const result = await analyzer.request(generated.source, options);
         if (!current(version)) return;
         const items = result.diagnostics.map(item => ({ ...item, blockId: locateBlock(generated.ranges, item.start) }));
