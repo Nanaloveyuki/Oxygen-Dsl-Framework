@@ -51,6 +51,7 @@ namespace Oxygendsl.Checks
             TraitChecks.Run(Check);
             EventCallbackChecks.Run(Check);
             LocalizationChecks.Run(Check);
+            EventChainChecks.Run(Check);
             Console.WriteLine("Oxygendsl behavior checks passed: " + count);
         }
 
