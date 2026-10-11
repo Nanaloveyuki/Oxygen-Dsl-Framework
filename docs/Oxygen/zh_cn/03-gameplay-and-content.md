@@ -227,6 +227,16 @@ gate_rule("manual_begging", gate: "Beg", evaluate: allow_begging)
 
 停用 Mod 规则不会删除原生 Def、已经授予的特质或已获取的原生记忆；它不是安全卸载内容包的通用操作。原生状态的删除或迁移仍按消费包契约处理。
 
+## 持久事件链
+
+事件链不是动态心情函数。消费 Mod 在 C# 注册 provider，框架保存它的实例、阶段、期限和动作回执，并仅在到期时求值。实际生成、信件和其它不可逆动作仍由消费端的白名单实现执行。
+
+事件宿主提供 `use events.ctx@event as ctx`。决议函数返回 `ctx.wait(next_tick)`、`ctx.action(action_id, next_tick: ..., stage: ...)` 或 `ctx.finish("completed")`；普通心情窗口和自动内容编译器不提供这个模块。事实字段与动作名必须查消费端接口，不能凭字符串调用任意 C#。
+
+Paused、Disabled、Cancelled 与 owner-unavailable 有不同语义：暂停／停用保留实例并停止回调，取消写终态，缺失 owner 保留原始数据等待恢复或导出。恢复不会重放已确认动作；未知版本或未确认副作用会显示原因并停摆，不回退旧引擎。
+
+RHAH 使用这一宿主接管已有短链、八种长链和捕食到达延迟；NarrativeState 与现有世界对象仍由 RHAH 持有。移除 RHAH 须使用它的卸载副本导出；单独停用 ODF 心情脚本不足以卸掉框架或依赖它的 Mod。
+
 ## 原生文本的 DefInjected 翻译
 
 原生内容加载期不提供 lang 宿主。把翻译放在 `Languages/<语言>/DefInjected/<真实Def类型>/`，例如 TraitDef 和 ThoughtDef；目录按真实类型，不按用途或 XML 文件夹猜名。

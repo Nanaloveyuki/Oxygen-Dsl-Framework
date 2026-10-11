@@ -67,6 +67,14 @@ C# 消费端用 `OxygenSettingsHost.Register(owner, values)` 接入设置存储�
 
 关闭浏览器或返回主菜单不会结束服务；在 IrisMenus 明确点击「退出编辑器」或退出游戏才回收。切换存档后旧运行中文档失效，文件编辑仍可用。消费端使用 `OxygenEditorHost.RegisterDocuments(packageId, factory)` 提供 `Read`、`Write`、`Apply` 和显式事实 `Preview` 回调。事件接口 `OxygenEvents.Subscribe/Publish` 传递提供者、事件 ID、Pawn 和只读事实，不开放 Harmony 给脚本。使用与边界见 [编辑器文档](docs/ide.md#本机网页编辑器)。
 
+### 持久事件链
+
+ODF 提供 `IEventChainProvider`／`EventChainRuntime` C# API，以及事件宿主内的 `use events.ctx@event`。脚本只读取 provider 提供的事实并返回等待、阶段或白名单动作决议；实际游戏动作仍由消费 Mod 执行，不开放反射、Harmony 或通用 Job DSL。
+
+实例、期限、阶段和动作回执按 provider 保存在 ODF 的 GameComponent 中。到期队列替代每 tick 遍历历史；旧格式通过激活前的原子迁移接点导入。缺失 owner、版本不兼容或未确认动作保留数据并暂停，不运行备用旧引擎。暂停／停用不删除世界对象，卸载导出只清理指定消费端归属的分区。
+
+RHAH 的现有短链、八种长链与 120 tick 捕食到达排程使用这一运行时；事件身份、Pawn／捕食 AI 和叙事事实仍归 RHAH。新版 RHAH 因此需要 ODF 必需前置，本批没有新增物品、事件或剧情。接口与生命周期见[持久事件链](docs/syntax-draft.md#持久事件链与-eventsctxevent)。
+
 ### VSCode 作者工具
 
 `Tools/vscode` 提供 `.oxy` 与 Markdown 围栏高亮、17 个常用片段（含 `lang`）、当前文件诊断和 Outline／符号导航；检查未保存文本，复用现有 parser/analyzer，不执行脚本。检查器不依赖游戏程序集，诊断与导航需要插件宿主安装 .NET 9+，高亮／片段无需 .NET。

@@ -503,6 +503,45 @@ OxygenSettingsHost.Modules.Register("author.modid", "tools", module);
 
 `ArtiExecutor.InvokePrepared(callable, params object[] arguments)` 复用准备好的脚本函数／绑定方法／原生回调，每次重置步骤与深度预算，失败抛 ScriptEvaluationException。所有注册、绘制和回调都在游戏线程执行；原生回调是可信 C#，其耗时和副作用不由解释器预算约束。模块库应只初始化自身状态；设置编译失败只保证页面注册不替换，不回滚脚本主动调用的原生副作用。此接口不意味着其它内容宿主已自动接入共享注册表。
 
+## 持久事件链与 events.ctx@event
+
+事件链使用独立的 `EventChainScript` 宿主，复用 Oxygen 的解析、分析与有界函数调用。`event` 是此宿主提供的模块身份，不是语法关键字、Mod packageId 或可从普通 `Oxygen/` 自动加载的目录。动态心情、原生内容与设置宿主不会因此获得事件动作权限。
+
+```oxygen
+use events.ctx@event as ctx
+
+fn evaluate(chain) {
+    if chain.stage == 0 {
+        return ctx.action("roll_predator", next_tick: -1, stage: 2)
+    }
+    return ctx.wait(chain.tick + 2500)
+}
+```
+
+这段代码须由已注册的 C# provider 调用。`chain` 的事实由 provider 明确提供；`roll_predator` 也必须存在于该 provider 的动作白名单，不能借动作字符串调用任意 C#。
+
+| 返回值 | 含义 |
+| --- | --- |
+| `ctx.wait(next_tick)` | 等待指定模拟 tick；`-1` 表示无下一次规则检查，已有 deadline 仍有效 |
+| `ctx.action(action_id, next_tick: ..., stage: ...)` | 请求宿主的具名动作；可提交后续阶段与检查时间 |
+| `ctx.finish("completed")` | 结束实例；另支持 `failed`、`expired`、`cancelled` |
+
+未来检查 tick 必须大于当前 tick，不能递归立即重试。期限到达时只处理到期实例；终态不再进入规则回调。脚本对象、闭包与临时缓存不写入存档。
+
+C# API 在 `Oxygendsl.Core.Events`，游戏宿主在 `Oxygendsl.Mod.Events`：
+
+- `IEventChainProvider` 声明稳定 provider ID、API／状态版本和定义集合；`IEventChainDefinition` 声明独立定义版本、一次准备、决议和受限动作执行。
+- `OxygenEventChainHost.Register(provider)` 注册宿主；`Preparing` 在读档引用就绪、运行时激活前提供旧格式迁移接点，不依赖两个 GameComponent 的载入顺序。
+- `EventChainRuntime.Import(...)` 只导入尚不存在的 provider 分区，原子验证；显式空分区也是权威状态，不能从残留旧记录重新生成。
+- `Start`、`SetStage`、`End` 使用 provider ID 和实例 ID 定位。实例 ID 在所属 provider 内稳定，地图／商队目标、阶段、原始期限与 payload 随实例保存。
+- `SetMode` 区分 Active、Paused、Disabled。暂停与停用均保留实例和已存在世界对象；恢复时按暂停时长平移下一次检查和期限，不重放已确认动作。
+
+框架存档 schema、provider 状态版本、链定义版本和 API 版本分别校验。缺失 owner 或不兼容版本保留原始数据并停摆，运行检查显示原因；没有旧引擎回退。动作执行先登记待确认回执，再同步提交结果；异常或读档发现待确认效果时暂停，不能假定不可逆效果未发生并自动重试。
+
+调度器只访问到期队列和活动索引，不按每 tick 枚举历史终态。provider 注册、迁移、规则求值和动作提交在游戏主线程执行；动作不得递归推进运行时或修改正在执行的同一实例。
+
+`OxygenEventChainHost.RemoveProviderState(document, providerId)` 只删除序列化存档副本中的指定事件链分区，保留 ODF 根和其它 provider。它不清理 Pawn、Def、NarrativeState 或其它世界产物；消费 Mod 仍须完成自己的卸载导出。移除 ODF 前，必须处理仍依赖它的消费 Mod，不能靠停用动态心情保证安全卸载。
+
 ## 完整示例
 
 以下辅助模块放在 Oxygendsl 的 `Oxygen/helpers.oxy`；主脚本可从 `Examples/typed-mood.oxy` 读取。两者随发布包部署，math、logic、cs 由运行时内置提供。
