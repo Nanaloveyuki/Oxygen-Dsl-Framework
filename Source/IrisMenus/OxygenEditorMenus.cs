@@ -18,6 +18,9 @@ namespace Oxygendsl.IrisMenus
             {
                 ModContentPack target = provider;
                 string packageId = target.PackageIdPlayerFacing;
+                // Bundled examples remain editable without creating player-facing Mod Items.
+                if (string.Equals(packageId, "nanaloveyuki.oxygen.example.traits", System.StringComparison.OrdinalIgnoreCase)
+                    || string.Equals(packageId, "nanaloveyuki.oxygen.example.rhah", System.StringComparison.OrdinalIgnoreCase)) continue;
                 MenuRegistry.RegisterOwnerAction(target, "oxygen.edit",
                     () => "Oxygendsl_EditMod".Translate(), () => OxygenEditorHost.Open(packageId),
                     confirmation: () => "Oxygendsl_EditModConfirm".Translate(target.Name));

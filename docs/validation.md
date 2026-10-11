@@ -1,5 +1,11 @@
 # Oxygendsl 验证记录
 
+## IrisMenus 示例 Mod Item 清理（2026-10-11）
+
+- 两个独立示例启用后，网页编辑操作使 IrisMenus 为 `nanaloveyuki.oxygen.example.traits` 与 `nanaloveyuki.oxygen.example.rhah` 自动生成 launcher。仅在 `OxygenEditorMenus` 跳过这两个包的菜单注册；不修改 IrisMenus、内容加载、编辑文档资格或正式消费 Mod 的入口。
+- `dotnet build Source/IrisMenus/Oxygendsl.IrisMenus.csproj -c Release --nologo`：零警告、零错误。独立 RimWorld 1.6.4871，配置 `C:/RimCarbon14/odf-menu-examples-20261011`：旧适配器实例 `029766eab80e441ab053417a1bd63097` 的实际导航包含框架及两个 example；新适配器实例 `f077dafced9a4ad8bd4c30d8c20269b4` 保持两个 example 活动，但实际导航只保留框架，截图 `674df2ef97fd46eea140181309e291c0.png`。点击框架后「设置」「Oxygen 语言文档」和「在浏览器编辑 Mod」仍可见，截图 `60efaa37a623457fa49aaaefafb7823a.png`；没有在本轮重复打开浏览器或运行历史全套测试。
+- 首次复用旧原生验收配置失败：RHAH 位于 ODF 之前，加载到旧 Core 后缺少 EventChain 类型，未进入桥接。停止该隔离失败进程后，新建配置沿用已验证的 ODF 在前顺序、对齐当前 Core／Mod，再对比旧／新菜单适配器；没有修改生产加载规则以掩盖该失败。两次有效游戏正常退出，结果与回执位于 `tmp/menu-example-results.json`、`tmp/menu-example-receipts.jsonl`。
+
 ## RHAH 可选适配器延后加载（2026-10-11）
 
 - RHAH v1.0.6 发布 API 与当前 API 一致，接口没有删除；故障是 ODF 先加载却通过 LoadFolders 立即扫描反向依赖适配器。移除 Rhah 提前扫描项和适配 DLL 的自动静态启动入口，框架主体在全部模组程序集和静态启动完成后，从自身安装路径加载并调用既有 Activate。不改 RHAH API、不随包复制 API、不倒置框架依赖

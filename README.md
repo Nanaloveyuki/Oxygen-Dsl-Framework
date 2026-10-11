@@ -61,7 +61,7 @@ C# 消费端用 `OxygenSettingsHost.Register(owner, values)` 接入设置存储�
 
 ### 游戏内打开网页编辑器
 
-安装 IrisMenus 后，ODF 自动为有 `Oxygen/` 目录或已注册编辑文档的活动 Mod 注册「在浏览器编辑 Mod」和「退出编辑器」操作，不要求声明 ODF 依赖。点击编辑先二次确认，再打开随 Mod 打包的 CodeMirror／Blockly 页面，不是完整 VSCode。玩家机器不需要 Node、.NET SDK 或联网下载资源。
+安装 IrisMenus 后，ODF 自动为有 `Oxygen/` 目录或已注册编辑文档的活动 Mod 注册「在浏览器编辑 Mod」和「退出编辑器」操作，不要求声明 ODF 依赖。随框架提供的 `NativeTraits`／`RhahPolicy` 示例不自动注册独立 Mod Item，示例内容与编辑文档仍保留。点击编辑先二次确认，再打开随 Mod 打包的 CodeMirror／Blockly 页面，不是完整 VSCode。玩家机器不需要 Node、.NET SDK 或联网下载资源。
 
 服务只监听随机端口的 `127.0.0.1`，会话令牌留在 URL fragment；检查／文件读写／应用通过受认证的本机请求和游戏主线程执行。只能编辑活动 Mod 的 `Oxygen/` 下 `.oxy`、`.oxyblocks` 及消费端主动提供的存档草稿。保存安装文件会改变该 Mod，先保留备份；原生内容仍需重启，不能把保存误认为热应用。
 
