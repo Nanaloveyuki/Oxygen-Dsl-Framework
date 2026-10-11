@@ -2,6 +2,9 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using Oxygendsl.Core;
+using Oxygendsl.Core.Events;
+using Oxygendsl.Mod.Events;
+using System.Xml;
 using Oxygendsl.Language;
 using RimWorld;
 using Verse;
@@ -39,6 +42,24 @@ namespace Oxygendsl.Mod
         List<string> disabledContentProviders = new List<string>();
         List<ContentLayoutRecord> contentLayouts = new List<ContentLayoutRecord>();
 
+        readonly Game game;
+        int eventChainSchemaVersion = EventChainRuntime.SchemaVersion;
+        List<EventChainProviderSave> eventChainProviders = new List<EventChainProviderSave>();
+        EventChainRuntime eventChainRuntime;
+        bool eventChainFinalizeComplete;
+        bool eventChainInitializationStarted;
+        bool eventChainReady;
+        bool eventChainInitializationPending;
+        string eventChainError = string.Empty;
+        XmlElement preservedEventChainSchema;
+        XmlElement preservedEventChainProviders;
+        readonly List<XmlNode> unknownEventChainFields = new List<XmlNode>();
+        static readonly HashSet<string> savedFields = new HashSet<string>(StringComparer.Ordinal)
+        {
+            "eventChainSchemaVersion", "eventChainProviders", "draftSource", "activeSource", "enabled", "revision", "evaluationInterval",
+            "lastError", "lastEvaluationTick", "evaluationCount", "disabledContentProviders", "contentLayouts", "selected", "selectionCaptured", "ownedPawns", "cooldowns"
+        };
+
         readonly List<Pawn> candidates = new List<Pawn>();
 
         readonly List<PlannedEffect> plan = new List<PlannedEffect>();
@@ -48,7 +69,7 @@ namespace Oxygendsl.Mod
         readonly HashSet<string> activeIds = new HashSet<string>();
         readonly Stopwatch clock = new Stopwatch();
 
-        public GameComponent_Oxygendsl(Game game) { }
+        public GameComponent_Oxygendsl(Game game) { this.game = game; }
 
         public static GameComponent_Oxygendsl Current
         {
@@ -80,6 +101,93 @@ namespace Oxygendsl.Mod
         public long LastAllocatedBytes { get { return lastAllocatedBytes; } }
         public int LastEvaluationTick { get { return lastEvaluationTick; } }
         public int EvaluationCount { get { return evaluationCount; } }
+        public EventChainRuntime EventChains
+        {
+            get { OxygenEventChainHost.RequireMainThread(); return eventChainReady ? eventChainRuntime : null; }
+        }
+
+        internal bool EventChainFinalizeComplete { get { return eventChainFinalizeComplete; } }
+
+        internal bool BeginEventChainInitialization()
+        {
+            if (eventChainInitializationStarted) return false;
+            eventChainInitializationStarted = true;
+            return true;
+        }
+
+        internal EventChainRuntime CreateEventChainRuntime()
+        {
+            if (eventChainSchemaVersion != EventChainRuntime.SchemaVersion)
+            {
+                eventChainError = "paused: schema-mismatch (saved " + eventChainSchemaVersion + ", supported " + EventChainRuntime.SchemaVersion + "); original EventChain data retained, migration and actions blocked.";
+                Log.Warning("[Oxygendsl] " + eventChainError);
+                return null;
+            }
+            if (eventChainRuntime == null)
+                eventChainRuntime = new EventChainRuntime(EventChainSaveXml.Unwrap(eventChainProviders, item => item.State));
+            return eventChainRuntime;
+        }
+
+        internal void PreserveUnavailableEventChains(IReadOnlyList<IEventChainProvider> providers)
+        {
+            for (int i = 0; i < eventChainProviders.Count; i++)
+            {
+                EventChainProviderSave saved = eventChainProviders[i];
+                if (saved == null) continue;
+                IEventChainProvider owner = null;
+                for (int j = 0; j < providers.Count; j++)
+                    if (string.Equals(providers[j].ProviderId, saved.State.ProviderId, StringComparison.Ordinal)) { owner = providers[j]; break; }
+                saved.PreserveIfUnavailable(owner);
+            }
+        }
+
+        internal void CompleteEventChainInitialization() { eventChainError = string.Empty; eventChainReady = true; }
+        internal void FailEventChainInitialization(string reason) { eventChainError = "paused: preparation-failed; " + reason; }
+
+        public string DescribeEventChains()
+        {
+            OxygenEventChainHost.RequireMainThread();
+            if (!string.IsNullOrEmpty(eventChainError)) return eventChainError + (eventChainRuntime == null ? string.Empty : "\n" + eventChainRuntime.Describe());
+            return eventChainRuntime == null ? "paused: waiting for finalized game and provider preparation" : eventChainRuntime.Describe();
+        }
+
+        void ExposeEventChains()
+        {
+            if (Scribe.mode == LoadSaveMode.LoadingVars)
+            {
+                eventChainRuntime = null;
+                eventChainReady = false;
+                eventChainInitializationStarted = false;
+                eventChainInitializationPending = false;
+                eventChainFinalizeComplete = false;
+                eventChainError = string.Empty;
+                XmlNode root = Scribe.loader.curXmlParent;
+                preservedEventChainSchema = root == null ? null : EventChainSaveXml.Clone(root["eventChainSchemaVersion"]) as XmlElement;
+                preservedEventChainProviders = root == null ? null : EventChainSaveXml.Clone(root["eventChainProviders"]) as XmlElement;
+                unknownEventChainFields.Clear();
+                if (root != null)
+                    foreach (XmlNode node in root.ChildNodes)
+                        if (node is XmlElement && !savedFields.Contains(node.Name)) unknownEventChainFields.Add(EventChainSaveXml.Clone(node));
+            }
+            if (Scribe.mode == LoadSaveMode.Saving && eventChainSchemaVersion != EventChainRuntime.SchemaVersion)
+            {
+                EventChainSaveXml.WriteNode(preservedEventChainSchema);
+                EventChainSaveXml.WriteNode(preservedEventChainProviders);
+            }
+            else
+            {
+                Scribe_Values.Look(ref eventChainSchemaVersion, "eventChainSchemaVersion", EventChainRuntime.SchemaVersion, true);
+                if (eventChainSchemaVersion == EventChainRuntime.SchemaVersion)
+                {
+                    if (Scribe.mode == LoadSaveMode.Saving && eventChainRuntime != null)
+                        EventChainSaveXml.Synchronize(eventChainRuntime.States, ref eventChainProviders, item => new EventChainProviderSave(item), item => item.State);
+                    EventChainSaveXml.LookList(ref eventChainProviders, "eventChainProviders", preservedEventChainProviders);
+                }
+            }
+            if (Scribe.mode == LoadSaveMode.PostLoadInit && eventChainProviders == null) eventChainProviders = new List<EventChainProviderSave>();
+            if (Scribe.mode == LoadSaveMode.Saving)
+                for (int i = 0; i < unknownEventChainFields.Count; i++) EventChainSaveXml.WriteNode(unknownEventChainFields[i]);
+        }
         public bool ReloadModRules()
         {
             Pawn preview = Find.Selector == null || Find.Selector.SelectedPawns.Count == 0 ? null : Find.Selector.SelectedPawns[0];
@@ -97,6 +205,21 @@ namespace Oxygendsl.Mod
         public override void FinalizeInit()
         {
             OxygenContentHost.RestoreGameState(disabledContentProviders, contentLayouts);
+            eventChainFinalizeComplete = true;
+            // All component FinalizeInit and loaded references finish before migration or Prepare.
+            LongEventHandler.ExecuteWhenFinished(() =>
+            {
+                if (!ReferenceEquals(Verse.Current.Game, game)) return;
+                if (Verse.Current.ProgramState == ProgramState.Playing) OxygenEventChainHost.Initialize(this, game.tickManager.TicksGame);
+                else eventChainInitializationPending = true;
+            });
+        }
+
+        public override void GameComponentUpdate()
+        {
+            if (!eventChainInitializationPending || Verse.Current.ProgramState != ProgramState.Playing || !ReferenceEquals(Verse.Current.Game, game)) return;
+            eventChainInitializationPending = false;
+            OxygenEventChainHost.Initialize(this, game.tickManager.TicksGame);
         }
 
         public bool Apply(string source)
@@ -208,14 +331,16 @@ namespace Oxygendsl.Mod
 
         public override void GameComponentTick()
         {
-            if (!enabled || program == null || program.Rules.Count == 0) return;
             int tick = Find.TickManager.TicksGame;
+            if (eventChainReady) eventChainRuntime.Tick(tick);
+            if (!enabled || program == null || program.Rules.Count == 0) return;
             if (tick <= lastEvaluationTick || (tick - lastEvaluationTick) < evaluationInterval) return;
             Commit(true);
         }
 
         public override void ExposeData()
         {
+            ExposeEventChains();
             Scribe_Values.Look(ref draftSource, "draftSource");
             Scribe_Values.Look(ref activeSource, "activeSource", string.Empty);
             Scribe_Values.Look(ref enabled, "enabled", false);

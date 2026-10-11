@@ -24,6 +24,9 @@ namespace Oxygendsl.Mod
         private int inspectedContentRevision = -1;
         private string providerId = string.Empty;
         private string nativePreview = string.Empty;
+        private string inspectedEventChains = string.Empty;
+        private string eventChainInspection = string.Empty;
+        private float nextEventChainInspection;
 
         public ScriptWindow(GameComponent_Oxygendsl runtime)
         {
@@ -186,13 +189,19 @@ namespace Oxygendsl.Mod
 
         private void RefreshInspection()
         {
-            if (inspectedRevision == runtime.Revision && inspectedEvaluation == runtime.EvaluationCount && inspectedEffects == runtime.ActiveEffectCount && inspectedError == runtime.LastError && inspectedEnabled == runtime.Enabled && inspectedContentRevision == OxygenContentHost.Revision) return;
+            if (Time.realtimeSinceStartup >= nextEventChainInspection)
+            {
+                eventChainInspection = runtime.DescribeEventChains();
+                nextEventChainInspection = Time.realtimeSinceStartup + 0.5f;
+            }
+            if (inspectedRevision == runtime.Revision && inspectedEvaluation == runtime.EvaluationCount && inspectedEffects == runtime.ActiveEffectCount && inspectedError == runtime.LastError && inspectedEnabled == runtime.Enabled && inspectedContentRevision == OxygenContentHost.Revision && inspectedEventChains == eventChainInspection) return;
             inspectedRevision = runtime.Revision;
             inspectedEvaluation = runtime.EvaluationCount;
             inspectedEffects = runtime.ActiveEffectCount;
             inspectedError = runtime.LastError;
             inspectedEnabled = runtime.Enabled;
             inspectedContentRevision = OxygenContentHost.Revision;
+            inspectedEventChains = eventChainInspection;
             StringBuilder text = new StringBuilder();
             text.Append(T("Oxygendsl_ActiveEffects")).Append(": ").Append(runtime.ActiveEffectCount).AppendLine();
             text.Append(T("Oxygendsl_LastTick")).Append(": ").Append(runtime.LastEvaluationTick).AppendLine();
@@ -208,6 +217,7 @@ namespace Oxygendsl.Mod
                 if (rule.Details != null) for (int j = 0; j < rule.Details.Count; j++) text.Append("  ").Append(rule.Details[j]).AppendLine();
             }
             text.AppendLine().AppendLine(T("Oxygendsl_ModContent")).AppendLine(OxygenContentHost.Inspect());
+            text.AppendLine().AppendLine(T("Oxygendsl_EventChains")).AppendLine(eventChainInspection);
             if (!string.IsNullOrEmpty(nativePreview)) text.AppendLine(T("Oxygendsl_PreviewPawn")).AppendLine(nativePreview);
             inspection = text.ToString();
         }

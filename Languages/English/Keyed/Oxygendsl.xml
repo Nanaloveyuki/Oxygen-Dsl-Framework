@@ -53,6 +53,7 @@
   <Oxygendsl_EnableProvider>Enable provider rules</Oxygendsl_EnableProvider>
   <Oxygendsl_ProviderUpdated>Provider rules updated. Native definitions and granted traits were not removed.</Oxygendsl_ProviderUpdated>
   <Oxygendsl_ModContent>Native Mod content and rules</Oxygendsl_ModContent>
+  <Oxygendsl_EventChains>Event chain providers and lifecycle</Oxygendsl_EventChains>
   <Oxygendsl_SettingsNeedGame>Load a save to change these save-scoped settings.</Oxygendsl_SettingsNeedGame>
   <Oxygendsl_EditMod>Edit Mod in browser</Oxygendsl_EditMod>
   <Oxygendsl_EditModConfirm>Open the local Oxygen editor for {0}? Saved file changes affect this installed Mod. Applying runtime rules affects the current save; native content changes need a restart. Keep a backup before making changes. Closing the browser or returning to the main menu leaves the editor running. Use Exit editor in IrisMenus to stop it.</Oxygendsl_EditModConfirm>

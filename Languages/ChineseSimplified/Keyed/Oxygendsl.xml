@@ -53,6 +53,7 @@
   <Oxygendsl_EnableProvider>启用提供者规则</Oxygendsl_EnableProvider>
   <Oxygendsl_ProviderUpdated>提供者规则已更新，原生定义和已授予特质未移除。</Oxygendsl_ProviderUpdated>
   <Oxygendsl_ModContent>原生 Mod 内容与规则</Oxygendsl_ModContent>
+  <Oxygendsl_EventChains>事件链提供者与运行状态</Oxygendsl_EventChains>
   <Oxygendsl_SettingsNeedGame>请进入存档后修改这些设置；修改仅保存在当前存档中。</Oxygendsl_SettingsNeedGame>
   <Oxygendsl_EditMod>在浏览器编辑 Mod</Oxygendsl_EditMod>
   <Oxygendsl_EditModConfirm>打开「{0}」的本机 Oxygen 编辑器？保存文件会修改已安装的 Mod。应用运行规则会影响当前存档，原生内容修改需要重启。修改前请保留备份。关闭浏览器或返回主菜单后，编辑器仍会运行；在 IrisMenus 点击「退出编辑器」才会关闭。</Oxygendsl_EditModConfirm>
